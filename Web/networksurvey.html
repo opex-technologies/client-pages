@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Security Survey - SASE & Security Assessment</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #1a2859;
+            background: linear-gradient(135deg, #ffffff 0%, #a8c5e7 100%);
+            min-height: 100vh;
+            padding: 20px 0;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(26, 40, 89, 0.15);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: #1a2859;
+            color: white;
+            padding: 30px 40px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            letter-spacing: -0.3px;
+        }
+        
+        .header p {
+            font-size: 1rem;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+        
+        .form-container {
+            padding: 40px;
+        }
+        
+        .progress-bar {
+            background: rgba(168, 197, 231, 0.3);
+            height: 6px;
+            border-radius: 3px;
+            margin-bottom: 40px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .progress-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%);
+            animation: shimmer 2s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .progress-fill {
+            background: linear-gradient(90deg, #00c4cc 0%, #01c1f3 100%);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 2px;
+        }
+        
+        .section {
+            margin-bottom: 48px;
+            padding: 32px;
+            border: 1px solid rgba(168, 197, 231, 0.3);
+            border-radius: 16px;
+            background: linear-gradient(135deg, #ffffff 0%, rgba(168, 197, 231, 0.05) 100%);
+            transition: all 0.3s ease;
+        }
+        
+        .section:hover {
+            border-color: rgba(112, 218, 205, 0.4);
+            box-shadow: 0 4px 20px rgba(26, 40, 89, 0.08);
+            transform: translateY(-2px);
+        }
+        
+        .section h3 {
+            color: #1a2859;
+            margin-bottom: 32px;
+            font-size: 1.4rem;
+            font-weight: 700;
+            padding-bottom: 16px;
+            border-bottom: 3px solid #00c4cc;
+            position: relative;
+            letter-spacing: -0.02em;
+        }
+        
+        .section h3::after {
+            content: '';
+            position: absolute;
+            bottom: -3px;
+            left: 0;
+            width: 60px;
+            height: 3px;
+            background: #70dacd;
+            border-radius: 3px;
+        }
+        
+        .form-group {
+            margin-bottom: 32px;
+            padding: 20px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(168, 197, 231, 0.2);
+            transition: all 0.2s ease;
+        }
+        
+        .form-group:hover {
+            background: rgba(255, 255, 255, 0.9);
+            border-color: rgba(112, 218, 205, 0.3);
+        }
+        
+        .form-group:focus-within {
+            background: rgba(255, 255, 255, 1);
+            border-color: #00c4cc;
+            box-shadow: 0 0 0 3px rgba(0, 196, 204, 0.1);
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 12px;
+            font-weight: 600;
+            color: #0d1a3d;
+            font-size: 1rem;
+            line-height: 1.5;
+            letter-spacing: -0.01em;
+        }
+        
+        .form-group .question-category {
+            display: inline-flex;
+            align-items: center;
+            background: linear-gradient(135deg, #70dacd 0%, #01c1f3 100%);
+            color: #0d1a3d;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+            box-shadow: 0 2px 8px rgba(112, 218, 205, 0.3);
+        }
+        
+        .form-group .question-category::before {
+            content: '•';
+            margin-right: 6px;
+            font-size: 1.2em;
+        }
+        
+        .radio-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+        }
+        
+        .radio-option {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            padding: 12px 16px;
+            border: 2px solid rgba(168, 197, 231, 0.3);
+            border-radius: 8px;
+            background: #ffffff;
+            transition: all 0.3s ease;
+            margin-bottom: 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .radio-option::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(112, 218, 205, 0.1), transparent);
+            transition: left 0.5s ease;
+        }
+        
+        .radio-option:hover {
+            background: linear-gradient(135deg, rgba(112, 218, 205, 0.08) 0%, #ffffff 100%);
+            border-color: #70dacd;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(112, 218, 205, 0.2);
+        }
+        
+        .radio-option:hover::before {
+            left: 100%;
+        }
+        
+        .radio-option input[type="radio"] {
+            width: auto;
+            margin-right: 8px;
+            margin-bottom: 0;
+            padding: 0;
+        }
+        
+        .radio-option input[type="radio"]:checked + .radio-label {
+            font-weight: 600;
+            color: #1a2859;
+        }
+        
+        .radio-option:has(input[type="radio"]:checked) {
+            background: linear-gradient(135deg, rgba(0, 196, 204, 0.15) 0%, #ffffff 100%);
+            border-color: #00c4cc;
+            box-shadow: 0 4px 16px rgba(0, 196, 204, 0.25);
+            transform: scale(1.02);
+        }
+        
+        .radio-option:has(input[type="radio"]:checked)::after {
+            content: '✓';
+            position: absolute;
+            top: 4px;
+            right: 8px;
+            color: #00c4cc;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        
+        .radio-label {
+            font-size: 0.9rem;
+            color: #0d1a3d;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        
+        input, textarea, select {
+            width: 100%;
+            padding: 16px 20px;
+            border: 2px solid rgba(168, 197, 231, 0.4);
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: all 0.3s ease;
+            background: #fff;
+            font-weight: 400;
+        }
+        
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #00c4cc;
+            box-shadow: 0 0 0 4px rgba(0, 196, 204, 0.15), 0 4px 12px rgba(0, 196, 204, 0.1);
+            transform: translateY(-1px);
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+            font-family: inherit;
+        }
+        
+        .contact-section {
+            background: linear-gradient(135deg, #ffffff 0%, rgba(112, 218, 205, 0.1) 100%);
+            border: 1px solid #70dacd;
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+        
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+        
+        .submit-section {
+            margin-top: 48px;
+            padding-top: 32px;
+            border-top: 2px solid rgba(168, 197, 231, 0.2);
+            text-align: center;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(168, 197, 231, 0.05) 100%);
+            border-radius: 16px;
+            padding: 32px;
+        }
+        
+        .submit-btn {
+            background: linear-gradient(135deg, #00c4cc 0%, #01c1f3 100%);
+            color: white;
+            padding: 18px 48px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 200px;
+            box-shadow: 0 8px 24px rgba(0, 196, 204, 0.3);
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .submit-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s ease;
+        }
+        
+        .submit-btn:hover {
+            background: linear-gradient(135deg, #01c1f3 0%, #70dacd 100%);
+            transform: translateY(-3px);
+            box-shadow: 0 12px 32px rgba(0, 196, 204, 0.4);
+        }
+        
+        .submit-btn:hover::before {
+            left: 100%;
+        }
+        
+        .submit-btn:active {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(0, 196, 204, 0.3);
+        }
+        
+        .submit-btn:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 15px 20px;
+            border-radius: 6px;
+            font-weight: 500;
+            display: none;
+            font-size: 1rem;
+            text-align: center;
+            animation: slideIn 0.3s ease;
+        }
+        
+        .success { 
+            background: linear-gradient(135deg, #70dacd 0%, #ffffff 100%); 
+            color: #1a2859;
+            border: 2px solid #70dacd;
+        }
+        
+        .error { 
+            background: linear-gradient(135deg, #eed91a 0%, #ffffff 100%); 
+            color: #1a2859;
+            border: 2px solid #eed91a;
+        }
+        
+        .footer {
+            background: linear-gradient(135deg, #1a2859 0%, #00c4cc 100%);
+            color: white;
+            padding: 25px 40px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+        
+        .footer a {
+            color: #70dacd;
+            text-decoration: none;
+        }
+        
+        .footer a:hover {
+            color: white;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Accessibility improvements */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+        
+        /* Focus indicators for keyboard navigation */
+        .form-group:focus-within .question-category {
+            outline: 2px solid #00c4cc;
+            outline-offset: 2px;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                margin: 0 16px;
+                border-radius: 8px;
+            }
+            
+            .header {
+                padding: 32px 24px;
+            }
+            
+            .header h1 {
+                font-size: 1.6rem;
+            }
+            
+            .form-container {
+                padding: 32px 24px;
+            }
+            
+            .form-grid {
+                grid-template-columns: 1fr;
+                gap: 24px;
+            }
+            
+            .section {
+                padding: 24px 20px;
+                margin-bottom: 32px;
+            }
+            
+            .section h3 {
+                font-size: 1.2rem;
+            }
+            
+            .form-group {
+                padding: 16px;
+                margin-bottom: 24px;
+            }
+            
+            .radio-group {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+            
+            .radio-option {
+                padding: 16px;
+            }
+            
+            .submit-btn {
+                width: 100%;
+                padding: 20px;
+                font-size: 1rem;
+            }
+            
+            .footer {
+                padding: 24px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 1.4rem;
+            }
+            
+            .form-container {
+                padding: 24px 16px;
+            }
+            
+            .section {
+                padding: 20px 16px;
+            }
+            
+            .form-group .question-category {
+                font-size: 0.7rem;
+                padding: 4px 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Network Security Survey</h1>
+            <p>SASE & Security Assessment Questionnaire</p>
+        </div>
+        
+        <div class="form-container">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+            
+            <form id="networkSurveyForm">
+                <!-- Contact Information Section -->
+                <div class="section contact-section">
+                    <h3>Contact Information</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="contact_name">Full Name *</label>
+                            <input type="text" id="contact_name" name="contact_name" required placeholder="Your full name">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="contact_email">Email Address *</label>
+                            <input type="email" id="contact_email" name="contact_email" required placeholder="your@email.com">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="contact_company">Company *</label>
+                            <input type="text" id="contact_company" name="contact_company" required placeholder="Your company name">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="contact_phone">Phone Number</label>
+                            <input type="tel" id="contact_phone" name="contact_phone" placeholder="(555) 123-4567">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- SASE/Security Questions Section -->
+                <div class="section">
+                    <h3>SASE & Security Assessment Questions</h3>
+                    <div id="dynamic-questions">
+                        <!-- Questions will be dynamically generated here -->
+                    </div>
+                </div>
+                
+                <div class="submit-section">
+                    <button type="submit" id="submit-btn" class="submit-btn">Submit Survey</button>
+                    <div id="status" class="status"></div>
+                </div>
+            </form>
+        </div>
+        
+        <div class="footer">
+            <p>Network Security Survey • 
+               <a href="mailto:support@example.com">Need assistance?</a></p>
+        </div>
+    </div>
+
+    <script>
+        // SASE questions data (extracted from CSV)
+        const surveyQuestions = [
+            {"question": "Company Name", "data_type": "Company Information", "input_type": "text", "field_id": "field_1"},
+            {"question": "Year founded", "data_type": "Company Information", "input_type": "number", "field_id": "field_2"},
+            {"question": "Headquarters", "data_type": "Company Information", "input_type": "text", "field_id": "field_3"},
+            {"question": "Parent Company", "data_type": "Company Information", "input_type": "text", "field_id": "field_4"},
+            {"question": "Year SD WAN Launched", "data_type": "Platform History", "input_type": "number", "field_id": "field_5"},
+            {"question": "Year SASE Platform launched", "data_type": "Platform History", "input_type": "number", "field_id": "field_6"},
+            {"question": "Do you offer circuit procurement", "data_type": "Circuit Management", "input_type": "radio", "field_id": "field_7"},
+            {"question": "Do you hold direct contracts with the circuit providers, or do you leverage an aggregator?", "data_type": "Circuit Management", "input_type": "radio", "field_id": "field_8"},
+            {"question": "Do you offer circuit management", "data_type": "Circuit Management", "input_type": "radio", "field_id": "field_9"},
+            {"question": "Do you actively monitor and proactively open tickets for circuit issues", "data_type": "Circuit Management", "input_type": "radio", "field_id": "field_10"},
+            {"question": "Is onsite hardware replacement included", "data_type": "Support Services", "input_type": "radio", "field_id": "field_11"},
+            {"question": "What is your SLA for onsite replacement", "data_type": "Support Services", "input_type": "textarea", "field_id": "field_12"},
+            {"question": "What is your SLA for P1 incident response", "data_type": "Support Services", "input_type": "textarea", "field_id": "field_13"},
+            {"question": "Do you provide an uptime SLA if both hardware and circuits are procured through you? What is the SLA?", "data_type": "SLA Management", "input_type": "textarea", "field_id": "field_14"},
+            {"question": "Do you provide client access to the SD-WAN portal (co-management)", "data_type": "Portal Access", "input_type": "radio", "field_id": "field_15"},
+            {"question": "Can you shift traffic mid-session", "data_type": "SD-WAN Features", "input_type": "radio", "field_id": "field_16"},
+            {"question": "Do you support throughput monitoring", "data_type": "SD-WAN Features", "input_type": "radio", "field_id": "field_17"},
+            {"question": "Do you support full mesh? If so, what is the maximum number of sites in a full mesh?", "data_type": "Network Topology", "input_type": "textarea", "field_id": "field_18"},
+            {"question": "How do you connect into AWS and Azure?", "data_type": "Cloud Integration", "input_type": "textarea", "field_id": "field_19"},
+            {"question": "How do you license HA?", "data_type": "Licensing", "input_type": "textarea", "field_id": "field_20"},
+            {"question": "Do you have a middle mile network?", "data_type": "Network Infrastructure", "input_type": "radio", "field_id": "field_21"},
+            {"question": "Do you support packet duplication", "data_type": "Advanced Features", "input_type": "radio", "field_id": "field_22"},
+            {"question": "Do you support forward error correction", "data_type": "Advanced Features", "input_type": "radio", "field_id": "field_23"},
+            {"question": "What is your historical reporting retention period", "data_type": "Reporting", "input_type": "textarea", "field_id": "field_24"},
+            {"question": "Do you provide real-time traffic visibility and analytics", "data_type": "Analytics", "input_type": "radio", "field_id": "field_25"},
+            {"question": "What is your speed to failover between circuits", "data_type": "Performance", "input_type": "textarea", "field_id": "field_26"},
+            {"question": "Can you handle inbound traffic for hosted systems", "data_type": "Cloud Firewall", "input_type": "radio", "field_id": "field_27"},
+            {"question": "Do you offer client specific static IPs", "data_type": "IP Management", "input_type": "radio", "field_id": "field_28"},
+            {"question": "Do you have unified ruleset across all locations/POPs", "data_type": "Security Management", "input_type": "radio", "field_id": "field_29"},
+            {"question": "Do you provide content filtering", "data_type": "Security Features", "input_type": "radio", "field_id": "field_30"},
+            {"question": "Do you tie back to endpoint context", "data_type": "Security Features", "input_type": "radio", "field_id": "field_31"},
+            {"question": "Do you provide anti-malware (signature based)", "data_type": "Security Features", "input_type": "radio", "field_id": "field_32"},
+            {"question": "Do you provide next gen anti-malware (ML Based)", "data_type": "Security Features", "input_type": "radio", "field_id": "field_33"},
+            {"question": "Do you provide IPS/IDS", "data_type": "Security Features", "input_type": "radio", "field_id": "field_34"},
+            {"question": "Do you provide CASB", "data_type": "Security Features", "input_type": "radio", "field_id": "field_35"},
+            {"question": "Do you provide DLP", "data_type": "Security Features", "input_type": "radio", "field_id": "field_36"},
+            {"question": "Can you export logs in near real time to MDR provider - SPLUNK", "data_type": "Integration", "input_type": "radio", "field_id": "field_37"},
+            {"question": "Do you support multiple WAN segments (Multiple VRFs)", "data_type": "Network Segmentation", "input_type": "radio", "field_id": "field_38"},
+            {"question": "Is remote access always on", "data_type": "Remote Access", "input_type": "radio", "field_id": "field_39"},
+            {"question": "Do all cloud firewall services apply to remote access clients", "data_type": "Remote Access", "input_type": "radio", "field_id": "field_40"},
+            {"question": "Do you auto-select nearest POP", "data_type": "Remote Access", "input_type": "radio", "field_id": "field_41"},
+            {"question": "How many POPs do you have", "data_type": "Infrastructure", "input_type": "number", "field_id": "field_42"},
+            {"question": "Do you have access to middle mile network for optimal egress", "data_type": "Network Optimization", "input_type": "radio", "field_id": "field_43"},
+            {"question": "What is your maximum throughput", "data_type": "Performance", "input_type": "textarea", "field_id": "field_44"}
+        ];
+
+        function generateQuestions() {
+            const container = document.getElementById('dynamic-questions');
+            
+            surveyQuestions.forEach((q, index) => {
+                const formGroup = document.createElement('div');
+                formGroup.className = 'form-group';
+                
+                let inputElement = '';
+                
+                // Generate input based on specified input_type
+                switch(q.input_type) {
+                    case 'radio':
+                        inputElement = `
+                            <div class="radio-group">
+                                <label class="radio-option">
+                                    <input type="radio" name="${q.field_id}" value="yes" id="${q.field_id}_yes">
+                                    <span class="radio-label">Yes</span>
+                                </label>
+                                <label class="radio-option">
+                                    <input type="radio" name="${q.field_id}" value="no" id="${q.field_id}_no">
+                                    <span class="radio-label">No</span>
+                                </label>
+                                <label class="radio-option">
+                                    <input type="radio" name="${q.field_id}" value="partial" id="${q.field_id}_partial">
+                                    <span class="radio-label">Partial/Limited</span>
+                                </label>
+                            </div>
+                        `;
+                        break;
+                    case 'number':
+                        inputElement = `<input type="number" id="${q.field_id}" name="${q.field_id}" placeholder="Enter number">`;
+                        break;
+                    case 'text':
+                        inputElement = `<input type="text" id="${q.field_id}" name="${q.field_id}" placeholder="Enter text">`;
+                        break;
+                    case 'textarea':
+                    default:
+                        inputElement = `<textarea id="${q.field_id}" name="${q.field_id}" placeholder="Please provide details..."></textarea>`;
+                        break;
+                }
+                
+                formGroup.innerHTML = `
+                    <label for="${q.field_id}">
+                        <span class="question-category">${q.data_type}</span><br>
+                        ${q.question}
+                    </label>
+                    ${inputElement}
+                `;
+                
+                container.appendChild(formGroup);
+            });
+        }
+
+        function updateProgress() {
+            const form = document.getElementById('networkSurveyForm');
+            let filled = 0;
+            let totalQuestions = 0;
+            
+            // Count contact fields
+            const contactInputs = form.querySelectorAll('.contact-section input[required]');
+            contactInputs.forEach(input => {
+                totalQuestions++;
+                if (input.value.trim() !== '') {
+                    filled++;
+                }
+            });
+            
+            // Count survey questions
+            surveyQuestions.forEach(q => {
+                totalQuestions++;
+                if (q.input_type === 'radio') {
+                    // Check if any radio button in this group is selected
+                    const radioChecked = form.querySelector(`input[name="${q.field_id}"]:checked`);
+                    if (radioChecked) {
+                        filled++;
+                    }
+                } else {
+                    // Check text/textarea/number inputs
+                    const input = form.querySelector(`#${q.field_id}`);
+                    if (input && input.value.trim() !== '') {
+                        filled++;
+                    }
+                }
+            });
+            
+            const percentage = totalQuestions > 0 ? (filled / totalQuestions) * 100 : 0;
+            document.getElementById('progress-fill').style.width = percentage + '%';
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            generateQuestions();
+            
+            // Add event listeners for progress tracking
+            const form = document.getElementById('networkSurveyForm');
+            form.addEventListener('input', updateProgress);
+            form.addEventListener('change', updateProgress);
+            
+            // Form submission
+            document.getElementById('networkSurveyForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const submitBtn = document.getElementById('submit-btn');
+                const statusDiv = document.getElementById('status');
+                const webhookUrl = 'https://opex-form-to-bq-table-393756313719.us-central1.run.app';
+                
+                // Disable button and show loading
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Submitting...';
+                statusDiv.style.display = 'none';
+                
+                // Collect form data
+                const formData = new FormData(this);
+                const data = {
+                    formName: 'network-security-survey',
+                    formData: {
+                        timestamp: new Date().toISOString(),
+                        source: 'sase-network-survey'
+                    }
+                };
+                
+                // Add all form fields to data
+                for (let [key, value] of formData.entries()) {
+                    data.formData[key] = value;
+                }
+                
+                try {
+                    const response = await fetch(webhookUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(data)
+                    });
+                    
+                    if (response.ok) {
+                        statusDiv.className = 'status success';
+                        statusDiv.textContent = 'Survey submitted successfully! Thank you for your responses.';
+                        statusDiv.style.display = 'block';
+                        
+                        // Reset form
+                        this.reset();
+                        updateProgress();
+                    } else {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
+                } catch (error) {
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = `Error submitting survey: ${error.message}`;
+                    statusDiv.style.display = 'block';
+                }
+                
+                // Re-enable button
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit Survey';
+            });
+        });
+    </script>
+</body>
+</html>
