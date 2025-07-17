@@ -642,6 +642,9 @@
                 const formGroup = document.createElement('div');
                 formGroup.className = 'form-group';
                 
+                // Use question text as field name (sanitized for HTML form names)
+                const fieldName = q.question.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+                
                 let inputElement = '';
                 
                 // Generate input based on specified input_type
@@ -650,34 +653,34 @@
                         inputElement = `
                             <div class="radio-group">
                                 <label class="radio-option">
-                                    <input type="radio" name="${q.field_id}" value="yes" id="${q.field_id}_yes">
+                                    <input type="radio" name="${fieldName}" value="yes" id="${fieldName}_yes">
                                     <span class="radio-label">Yes</span>
                                 </label>
                                 <label class="radio-option">
-                                    <input type="radio" name="${q.field_id}" value="no" id="${q.field_id}_no">
+                                    <input type="radio" name="${fieldName}" value="no" id="${fieldName}_no">
                                     <span class="radio-label">No</span>
                                 </label>
                                 <label class="radio-option">
-                                    <input type="radio" name="${q.field_id}" value="partial" id="${q.field_id}_partial">
+                                    <input type="radio" name="${fieldName}" value="partial" id="${fieldName}_partial">
                                     <span class="radio-label">Partial/Limited</span>
                                 </label>
                             </div>
                         `;
                         break;
                     case 'number':
-                        inputElement = `<input type="number" id="${q.field_id}" name="${q.field_id}" placeholder="Enter number">`;
+                        inputElement = `<input type="number" id="${fieldName}" name="${fieldName}" placeholder="Enter number">`;
                         break;
                     case 'text':
-                        inputElement = `<input type="text" id="${q.field_id}" name="${q.field_id}" placeholder="Enter text">`;
+                        inputElement = `<input type="text" id="${fieldName}" name="${fieldName}" placeholder="Enter text">`;
                         break;
                     case 'textarea':
                     default:
-                        inputElement = `<textarea id="${q.field_id}" name="${q.field_id}" placeholder="Please provide details..."></textarea>`;
+                        inputElement = `<textarea id="${fieldName}" name="${fieldName}" placeholder="Please provide details..."></textarea>`;
                         break;
                 }
                 
                 formGroup.innerHTML = `
-                    <label for="${q.field_id}">
+                    <label for="${fieldName}">
                         <span class="question-category">${q.data_type}</span><br>
                         ${q.question}
                     </label>
@@ -705,15 +708,16 @@
             // Count survey questions
             surveyQuestions.forEach(q => {
                 totalQuestions++;
+                const fieldName = q.question.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
                 if (q.input_type === 'radio') {
                     // Check if any radio button in this group is selected
-                    const radioChecked = form.querySelector(`input[name="${q.field_id}"]:checked`);
+                    const radioChecked = form.querySelector(`input[name="${fieldName}"]:checked`);
                     if (radioChecked) {
                         filled++;
                     }
                 } else {
                     // Check text/textarea/number inputs
-                    const input = form.querySelector(`#${q.field_id}`);
+                    const input = form.querySelector(`#${fieldName}`);
                     if (input && input.value.trim() !== '') {
                         filled++;
                     }

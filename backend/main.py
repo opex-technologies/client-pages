@@ -16,38 +16,63 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def create_table_if_not_exists(dataset_id: str, table_id: str) -> None:
-    """Create BigQuery table if it doesn't exist with the appropriate schema."""
+def create_table_if_not_exists(dataset_id: str, table_id: str, form_data: Dict[str, Any]) -> None:
+    """Create BigQuery table if it doesn't exist with dynamic schema based on form data."""
     
     table_ref = client.dataset(dataset_id).table(table_id)
     
     try:
         # Check if table exists
-        client.get_table(table_ref)
+        table = client.get_table(table_ref)
         logger.info(f"Table {dataset_id}.{table_id} already exists")
+        
+        # Check if we need to add new fields
+        existing_fields = {field.name for field in table.schema}
+        new_fields = []
+        
+        for key in form_data.keys():
+            if key not in existing_fields and key != "inserted_at":
+                # Determine field type based on value
+                field_type = "STRING"
+                if key == "timestamp":
+                    field_type = "TIMESTAMP"
+                elif isinstance(form_data.get(key), (int, float)):
+                    field_type = "NUMERIC"
+                
+                new_fields.append(SchemaField(key, field_type, mode="NULLABLE"))
+        
+        if new_fields:
+            # Add new fields to existing table
+            new_schema = table.schema + new_fields
+            table.schema = new_schema
+            table = client.update_table(table, ["schema"])
+            logger.info(f"Added {len(new_fields)} new fields to table {dataset_id}.{table_id}")
+        
         return
+        
     except Exception:
         # Table doesn't exist, create it
         logger.info(f"Creating table {dataset_id}.{table_id}")
         
-        # Define schema based on the contact form structure
-        schema = [
-            SchemaField("name", "STRING", mode="NULLABLE"),
-            SchemaField("email", "STRING", mode="NULLABLE"),
-            SchemaField("company", "STRING", mode="NULLABLE"),
-            SchemaField("phone", "STRING", mode="NULLABLE"),
-            SchemaField("subject", "STRING", mode="NULLABLE"),
-            SchemaField("message", "STRING", mode="NULLABLE"),
-            SchemaField("priority", "STRING", mode="NULLABLE"),
-            SchemaField("contactMethod", "STRING", mode="NULLABLE"),
-            SchemaField("timestamp", "TIMESTAMP", mode="NULLABLE"),
-            SchemaField("source", "STRING", mode="NULLABLE"),
-            SchemaField("inserted_at", "TIMESTAMP", mode="REQUIRED"),
-        ]
+        # Create dynamic schema based on form data
+        schema = []
+        
+        for key, value in form_data.items():
+            # Determine field type based on value
+            field_type = "STRING"
+            if key == "timestamp":
+                field_type = "TIMESTAMP"
+            elif isinstance(value, (int, float)):
+                field_type = "NUMERIC"
+            
+            schema.append(SchemaField(key, field_type, mode="NULLABLE"))
+        
+        # Always add inserted_at field
+        schema.append(SchemaField("inserted_at", "TIMESTAMP", mode="REQUIRED"))
         
         table = bigquery.Table(table_ref, schema=schema)
         table = client.create_table(table)
-        logger.info(f"Created table {table.project}.{table.dataset_id}.{table.table_id}")
+        logger.info(f"Created table {table.project}.{table.dataset_id}.{table.table_id} with {len(schema)} fields")
 
 
 def insert_data_to_bigquery(dataset_id: str, table_id: str, form_data: Dict[str, Any]) -> None:
@@ -137,7 +162,7 @@ def webhook_to_bigquery(request: Request) -> tuple[str, int]:
         logger.info(f"Processing webhook for form: {form_name}, target table: {table_name}")
         
         # Create table if it doesn't exist
-        create_table_if_not_exists(dataset_id, table_name)
+        create_table_if_not_exists(dataset_id, table_name, form_data)
         
         # Insert data into BigQuery
         insert_data_to_bigquery(dataset_id, table_name, form_data)
