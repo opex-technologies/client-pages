@@ -34,6 +34,24 @@
             color: white;
             padding: 30px 40px;
             text-align: center;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .header-logo {
+            position: absolute;
+            left: 40px;
+            top: 50%;
+            transform: translateY(-50%);
+            height: 60px;
+            width: auto;
+            filter: brightness(0) invert(1);
+        }
+        
+        .header-content {
+            flex: 1;
         }
         
         .header h1 {
@@ -193,6 +211,15 @@
             
             .header {
                 padding: 25px 20px;
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .header-logo {
+                position: static;
+                transform: none;
+                margin-bottom: 16px;
+                height: 50px;
             }
             
             .header h1 {
@@ -217,8 +244,11 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Get In Touch</h1>
-            <p>Send us a message and we'll respond promptly</p>
+            <img src="https://storage.googleapis.com/opex-web-forms-20250716-145646/opex-logo.avif" alt="Opex Technologies Logo" class="header-logo">
+            <div class="header-content">
+                <h1>Get In Touch</h1>
+                <p>Send us a message and we'll respond promptly</p>
+            </div>
         </div>
         
         <div class="form-container">
