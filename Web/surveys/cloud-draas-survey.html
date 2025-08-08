@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloud DRaaS Survey</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            line-height: 1.6;
+            color: #1a2859;
+            background: linear-gradient(135deg, #ffffff 0%, #a8c5e7 100%);
+            min-height: 100vh;
+            padding: 20px 0;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(26, 40, 89, 0.15);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: #ffffff;
+            color: #1a2859;
+            padding: 30px 40px;
+            text-align: center;
+            border-bottom: 3px solid #00c4cc;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .header-logo {
+            position: absolute;
+            left: 40px;
+            top: 50%;
+            transform: translateY(-50%);
+            height: 60px;
+            width: auto;
+        }
+        
+        .header-content {
+            flex: 1;
+        }
+        
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            letter-spacing: -0.3px;
+        }
+        
+        .header p {
+            font-size: 1rem;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+        
+        .form-container {
+            padding: 40px;
+        }
+        
+        .progress-bar {
+            background: rgba(168, 197, 231, 0.3);
+            height: 6px;
+            border-radius: 3px;
+            margin-bottom: 40px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .progress-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%);
+            animation: shimmer 2s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        .progress-fill {
+            background: linear-gradient(90deg, #00c4cc 0%, #01c1f3 100%);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 2px;
+        }
+        
+        .section {
+            margin-bottom: 48px;
+            padding: 32px;
+            border: 1px solid rgba(168, 197, 231, 0.3);
+            border-radius: 16px;
+            background: linear-gradient(135deg, #ffffff 0%, rgba(168, 197, 231, 0.05) 100%);
+            transition: all 0.3s ease;
+        }
+        
+        .section:hover {
+            border-color: rgba(112, 218, 205, 0.4);
+            box-shadow: 0 4px 20px rgba(26, 40, 89, 0.08);
+            transform: translateY(-2px);
+        }
+        
+        .section h3 {
+            color: #1a2859;
+            margin-bottom: 32px;
+            font-size: 1.4rem;
+            font-weight: 700;
+            padding-bottom: 16px;
+            border-bottom: 3px solid #00c4cc;
+            position: relative;
+            letter-spacing: -0.02em;
+        }
+        
+        .section h3::after {
+            content: '';
+            position: absolute;
+            bottom: -3px;
+            left: 0;
+            width: 60px;
+            height: 3px;
+            background: #70dacd;
+            border-radius: 3px;
+        }
+        
+        .form-group {
+            margin-bottom: 32px;
+            padding: 20px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(168, 197, 231, 0.2);
+            transition: all 0.2s ease;
+        }
+        
+        .form-group:hover {
+            background: rgba(255, 255, 255, 0.9);
+            border-color: rgba(112, 218, 205, 0.3);
+        }
+        
+        .form-group:focus-within {
+            background: rgba(255, 255, 255, 1);
+            border-color: #00c4cc;
+            box-shadow: 0 0 0 3px rgba(0, 196, 204, 0.1);
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 12px;
+            font-weight: 600;
+            color: #0d1a3d;
+            font-size: 1rem;
+            line-height: 1.5;
+            letter-spacing: -0.01em;
+        }
+        
+        .form-group .question-category {
+            display: inline-flex;
+            align-items: center;
+            background: linear-gradient(135deg, #70dacd 0%, #01c1f3 100%);
+            color: #0d1a3d;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+            box-shadow: 0 2px 8px rgba(112, 218, 205, 0.3);
+        }
+        
+        .form-group .question-category::before {
+            content: '•';
+            margin-right: 6px;
+            font-size: 1.2em;
+        }
+        
+        .radio-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+        }
+        
+        .radio-option {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            padding: 12px 16px;
+            border: 2px solid rgba(168, 197, 231, 0.3);
+            border-radius: 8px;
+            background: #ffffff;
+            transition: all 0.3s ease;
+            margin-bottom: 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .radio-option::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(112, 218, 205, 0.1), transparent);
+            transition: left 0.5s ease;
+        }
+        
+        .radio-option:hover {
+            background: linear-gradient(135deg, rgba(112, 218, 205, 0.08) 0%, #ffffff 100%);
+            border-color: #70dacd;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(112, 218, 205, 0.2);
+        }
+        
+        .radio-option:hover::before {
+            left: 100%;
+        }
+        
+        .radio-option input[type="radio"] {
+            width: auto;
+            margin-right: 8px;
+            margin-bottom: 0;
+            padding: 0;
+        }
+        
+        .radio-option input[type="radio"]:checked + .radio-label {
+            font-weight: 600;
+            color: #1a2859;
+        }
+        
+        .radio-option:has(input[type="radio"]:checked) {
+            background: linear-gradient(135deg, rgba(0, 196, 204, 0.15) 0%, #ffffff 100%);
+            border-color: #00c4cc;
+            box-shadow: 0 4px 16px rgba(0, 196, 204, 0.25);
+            transform: scale(1.02);
+        }
+        
+        .radio-option:has(input[type="radio"]:checked)::after {
+            content: '✓';
+            position: absolute;
+            top: 4px;
+            right: 8px;
+            color: #00c4cc;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        
+        .radio-label {
+            font-size: 0.9rem;
+            color: #0d1a3d;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        
+        input, textarea, select {
+            width: 100%;
+            padding: 16px 20px;
+            border: 2px solid rgba(168, 197, 231, 0.4);
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: inherit;
+            transition: all 0.3s ease;
+            background: #fff;
+            font-weight: 400;
+        }
+        
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #00c4cc;
+            box-shadow: 0 0 0 4px rgba(0, 196, 204, 0.15), 0 4px 12px rgba(0, 196, 204, 0.1);
+            transform: translateY(-1px);
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+            font-family: inherit;
+        }
+        
+        .contact-section {
+            background: linear-gradient(135deg, #ffffff 0%, rgba(112, 218, 205, 0.1) 100%);
+            border: 1px solid #70dacd;
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+        
+        .submit-section {
+            margin-top: 48px;
+            padding-top: 32px;
+            border-top: 2px solid rgba(168, 197, 231, 0.2);
+            text-align: center;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(168, 197, 231, 0.05) 100%);
+            border-radius: 16px;
+            padding: 32px;
+        }
+        
+        .submit-btn {
+            background: linear-gradient(135deg, #00c4cc 0%, #01c1f3 100%);
+            color: white;
+            padding: 18px 48px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 200px;
+            box-shadow: 0 8px 24px rgba(0, 196, 204, 0.3);
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .submit-btn:hover {
+            background: linear-gradient(135deg, #01c1f3 0%, #70dacd 100%);
+            transform: translateY(-3px);
+            box-shadow: 0 12px 32px rgba(0, 196, 204, 0.4);
+        }
+        
+        .submit-btn:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 15px 20px;
+            border-radius: 6px;
+            font-weight: 500;
+            display: none;
+            font-size: 1rem;
+            text-align: center;
+            animation: slideIn 0.3s ease;
+        }
+        
+        .success { 
+            background: linear-gradient(135deg, #70dacd 0%, #ffffff 100%); 
+            color: #1a2859;
+            border: 2px solid #70dacd;
+        }
+        
+        .error { 
+            background: linear-gradient(135deg, #eed91a 0%, #ffffff 100%); 
+            color: #1a2859;
+            border: 2px solid #eed91a;
+        }
+        
+        .footer {
+            background: linear-gradient(135deg, #1a2859 0%, #00c4cc 100%);
+            color: white;
+            padding: 25px 40px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+        
+        .footer a {
+            color: #70dacd;
+            text-decoration: none;
+        }
+        
+        .footer a:hover {
+            color: white;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+            }
+            
+            .header-logo {
+                position: static;
+                transform: none;
+                margin-bottom: 16px;
+                height: 50px;
+            }
+            
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .radio-group {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="https://storage.googleapis.com/opex-web-forms-20250716-145646/opex-logo.avif" alt="Opex Technologies Logo" class="header-logo">
+            <div class="header-content">
+                <h1>Cloud DRaaS Survey</h1>
+                <p>Disaster recovery as a service capabilities assessment</p>
+            </div>
+        </div>
+        
+        <div class="form-container">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+            
+            <form id="surveyForm">
+                <div class="section contact-section">
+                    <h3>Contact Information</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="contact_name">Full Name *</label>
+                            <input type="text" id="contact_name" name="contact_name" required placeholder="Your full name">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="contact_email">Email Address *</label>
+                            <input type="email" id="contact_email" name="contact_email" required placeholder="your@email.com">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="contact_company">Company *</label>
+                            <input type="text" id="contact_company" name="contact_company" required placeholder="Your company name">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="contact_phone">Phone Number</label>
+                            <input type="tel" id="contact_phone" name="contact_phone" placeholder="(555) 123-4567">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h3>Assessment Questions</h3>
+                    <div id="dynamic-questions">
+                        <!-- Questions will be dynamically generated here -->
+                    </div>
+                </div>
+                
+                <div class="submit-section">
+                    <button type="submit" id="submit-btn" class="submit-btn">Submit Survey</button>
+                    <div id="status" class="status"></div>
+                </div>
+            </form>
+        </div>
+        
+        <div class="footer">
+            <p>Cloud DRaaS Survey • 
+               <a href="mailto:support@example.com">Need assistance?</a></p>
+        </div>
+    </div>
+
+    <script>
+        const surveyQuestions = [
+            {"question": "Company Name", "data_type": "Overview", "input_type": "textarea", "field_id": "field_1"},
+            {"question": "Year Founded", "data_type": "Overview", "input_type": "number", "field_id": "field_2"},
+            {"question": "Headquarters", "data_type": "Overview", "input_type": "textarea", "field_id": "field_3"},
+            {"question": "Ownership", "data_type": "Overview", "input_type": "textarea", "field_id": "field_4"},
+            {"question": "Parent Company", "data_type": "Overview", "input_type": "textarea", "field_id": "field_5"},
+            {"question": "Number of Clients/Endpoints", "data_type": "Overview", "input_type": "number", "field_id": "field_6"},
+            {"question": "Referenceable Clients", "data_type": "Overview", "input_type": "textarea", "field_id": "field_7"},
+            {"question": "Number of Employees", "data_type": "Overview", "input_type": "number", "field_id": "field_8"},
+            {"question": "Gartner/Forrester/Other Analyst Information", "data_type": "Overview", "input_type": "textarea", "field_id": "field_9"},
+            {"question": "Describe your DRaaS service offering(s)", "data_type": "DRaaS Features and Service Offerings", "input_type": "textarea", "field_id": "field_10"},
+            {"question": "How many DRaaS clients do you currently support", "data_type": "DRaaS Features and Service Offerings", "input_type": "number", "field_id": "field_11"},
+            {"question": "How many total systems are you protecting via your DRaaS offerring", "data_type": "DRaaS Features and Service Offerings", "input_type": "number", "field_id": "field_12"},
+            {"question": "What are your supported RPO(s), can you support 4 hr and 2 hr RPO(s)", "data_type": "DRaaS Features and Service Offerings", "input_type": "radio", "field_id": "field_13"},
+            {"question": "What are your supported RTO(s)", "data_type": "DRaaS Features and Service Offerings", "input_type": "radio", "field_id": "field_14"},
+            {"question": "Do you provide services/solutions that provide hot standby/active-active processing (Zero RPO/RTO)", "data_type": "DRaaS Features and Service Offerings", "input_type": "radio", "field_id": "field_15"},
+            {"question": "What recovery locations are available", "data_type": "DRaaS Features and Service Offerings", "input_type": "textarea", "field_id": "field_16"},
+            {"question": "How do you charge for DRaaS, how do you charge for vCPU/vRAM/Storage and do you have tiered pricing where costs go down as quantities go up", "data_type": "DRaaS Features and Service Offerings", "input_type": "radio", "field_id": "field_17"},
+            {"question": "What technologies do you leverage for replication/orchestration", "data_type": "DRaaS Features and Service Offerings", "input_type": "radio", "field_id": "field_18"},
+            {"question": "How many DR tests are included in offering by default and can additional tests be added", "data_type": "DRaaS Features and Service Offerings", "input_type": "number", "field_id": "field_19"},
+            {"question": "Do you provide an initial DR "test" during implementation in order to validate solution functionality and if so does this count against test built into service offerring", "data_type": "DRaaS Features and Service Offerings", "input_type": "radio", "field_id": "field_20"},
+            {"question": "Are there any fees/charges associated with "failing back" after a fail over and are there any caveats regarding the failover process", "data_type": "DRaaS Features and Service Offerings", "input_type": "textarea", "field_id": "field_21"},
+            {"question": "Do you have a portal that allows clients to view protected systems, monitor and manage DRaaS", "data_type": "DRaaS Features and Service Offerings", "input_type": "radio", "field_id": "field_22"},
+            {"question": "Do you offer recovery to multi-tenant cloud", "data_type": "DRaaS Features and Service Offerings", "input_type": "radio", "field_id": "field_23"},
+            {"question": "Do you offer recovery to private cloud", "data_type": "DRaaS Features and Service Offerings", "input_type": "radio", "field_id": "field_24"},
+            {"question": "Do you offer recovery to Azure/AWS/GCP or other cloud providers", "data_type": "DRaaS Features and Service Offerings", "input_type": "radio", "field_id": "field_25"},
+            {"question": "Do you support recovery to hybrid cloud, combination of customer owned gear and provider infrastructure ( customer owned Firewalls/switches/physical server etc with provider multi-tenant / private cloud recovery environment)", "data_type": "DRaaS Features and Service Offerings", "input_type": "radio", "field_id": "field_26"},
+            {"question": "How does your service provide for failover of public facing applications such as web applications", "data_type": "DRaaS Features and Service Offerings", "input_type": "textarea", "field_id": "field_27"},
+            {"question": "Does your DRaaS offering include a DR runbook/playbook, if so what is your methodology for keeping it up to date", "data_type": "DRaaS Features and Service Offerings", "input_type": "radio", "field_id": "field_28"},
+            {"question": "Do you have a maximum size limitation for virtual machines being protected (#vCPU/vRAM/Storage)", "data_type": "DRaaS Features and Service Offerings", "input_type": "radio", "field_id": "field_29"},
+            {"question": "Do you offer multiple tiers of storage for DR recovery", "data_type": "DRaaS Features and Service Offerings", "input_type": "radio", "field_id": "field_30"},
+            {"question": "Do you offer an assessments in order to determine application/system interdependencies, network requirements etc. If so is this done in house or via 3rd party", "data_type": "DRaaS Features and Service Offerings", "input_type": "radio", "field_id": "field_31"},
+            {"question": "Do you support protection of virtual appliances, open source operating systems and Windows server OS's, provide support matrix if possible", "data_type": "DRaaS Features and Service Offerings", "input_type": "radio", "field_id": "field_32"},
+            {"question": "Do you have multiple NOC's, if so please list locations", "data_type": "Support", "input_type": "radio", "field_id": "field_33"},
+            {"question": "What is your support model/methodology ( IE follow the sun, 24x7 with one centralized NOC etc)", "data_type": "Support", "input_type": "radio", "field_id": "field_34"},
+            {"question": "Do you have dedicated DRaaS engineers supporting your DRaaS service ( Monitoring/Break-fix/Testing/ Failover)", "data_type": "Support", "input_type": "radio", "field_id": "field_35"},
+            {"question": "Do you have a dedicated disaster recovery team / engineers", "data_type": "Support", "input_type": "radio", "field_id": "field_36"},
+            {"question": "Is support staff 100% U.S. based", "data_type": "Support", "input_type": "radio", "field_id": "field_37"},
+            {"question": "Do you offer Phone/Portal-Ticketing/Chat support options", "data_type": "Support", "input_type": "radio", "field_id": "field_38"},
+            {"question": "Do you offer Technical Account Management service", "data_type": "Support", "input_type": "radio", "field_id": "field_39"},
+            {"question": "Do you have premier support options ( IE persistent support engineering resources)", "data_type": "Support", "input_type": "radio", "field_id": "field_40"},
+            {"question": "Do you have a support model where engineering/support resources are either dedicated or persistent", "data_type": "Support", "input_type": "radio", "field_id": "field_41"},
+            {"question": "Ratio of support engineers to total staff", "data_type": "Support", "input_type": "textarea", "field_id": "field_42"},
+            {"question": "What are your SLA's for Disaster Recovery (RPO/RTO, Time to bring protected systems online after decleration etc.)", "data_type": "Service Level Agreements", "input_type": "radio", "field_id": "field_43"},
+            {"question": "SSAE 16 SOC I/II/III, PCI DSS, HIPAA, HiTRUST, GDPR, FedRamp, FISMA etc, please list", "data_type": "Compliance", "input_type": "textarea", "field_id": "field_44"},
+            {"question": "Do you have a dedicated compliance team", "data_type": "Compliance", "input_type": "radio", "field_id": "field_45"},
+            {"question": "Do you assist client with audits", "data_type": "Compliance", "input_type": "radio", "field_id": "field_46"},
+            {"question": "Do you have 24/7/365 staffed NOC", "data_type": "Support", "input_type": "radio", "field_id": "field_47"},
+            {"question": "Do you have multiple NOC's (list locations)", "data_type": "Support", "input_type": "radio", "field_id": "field_48"},
+            {"question": "Is support US based, offshore, hybrid, if offshore list locations", "data_type": "Support", "input_type": "textarea", "field_id": "field_49"},
+            {"question": "24/7/365 support for cloud services", "data_type": "Support", "input_type": "textarea", "field_id": "field_50"},
+            {"question": "Do you have premier support options ( IE persistent support engineering resources, dedicatd support options)", "data_type": "Support", "input_type": "radio", "field_id": "field_51"},
+            {"question": "What support KPI's do you track (Ticket response times, resolution times, phone hold times etc.) Can you share the KPI numbers?", "data_type": "Support", "input_type": "radio", "field_id": "field_52"},
+            {"question": "How do you track client support satisfaction, NPS etc.?", "data_type": "Support", "input_type": "radio", "field_id": "field_53"},
+            {"question": "Ratio of support engineers to total staff / Ratio of support engineers to clients", "data_type": "Support", "input_type": "textarea", "field_id": "field_54"},
+            {"question": "What client interaction options do you have (phone,ticketing,chat etc.)", "data_type": "Support", "input_type": "radio", "field_id": "field_55"},
+            {"question": "What is your mean time to answer support request", "data_type": "Support", "input_type": "radio", "field_id": "field_56"},
+            {"question": "What is your mean time to resolution", "data_type": "Support", "input_type": "radio", "field_id": "field_57"},
+            {"question": "What technology certifications do your support engineers hold/how many engineers are certififed", "data_type": "Support", "input_type": "number", "field_id": "field_58"},
+            {"question": "Do you support ebonding with Service Now", "data_type": "Support", "input_type": "radio", "field_id": "field_59"},
+            {"question": "How do you communicate change management/maintenance windows to clients", "data_type": "Support", "input_type": "radio", "field_id": "field_60"},
+            {"question": "Internet Bandwidth", "data_type": "SLAs", "input_type": "textarea", "field_id": "field_61"},
+            {"question": "Multi-Tenant Cloud", "data_type": "SLAs", "input_type": "textarea", "field_id": "field_62"},
+            {"question": "Private Cloud", "data_type": "SLAs", "input_type": "textarea", "field_id": "field_63"},
+            {"question": "Backup", "data_type": "SLAs", "input_type": "textarea", "field_id": "field_64"},
+            {"question": "Disaster Recovery", "data_type": "SLAs", "input_type": "textarea", "field_id": "field_65"},
+            {"question": "Data center services (power,cooling)", "data_type": "SLAs", "input_type": "textarea", "field_id": "field_66"},
+            {"question": "Do you offer VMware multi-tenant Cloud", "data_type": "Vmware: Multi-Tenant/Private Cloud", "input_type": "textarea", "field_id": "field_67"},
+            {"question": "Do you offer VMware private cloud Cloud", "data_type": "Vmware: Multi-Tenant/Private Cloud", "input_type": "textarea", "field_id": "field_68"},
+            {"question": "Briefly describe Private cloud platform(s)", "data_type": "Vmware: Multi-Tenant/Private Cloud", "input_type": "textarea", "field_id": "field_69"},
+            {"question": "Briefly describe Multi-Tenant cloud platform", "data_type": "Vmware: Multi-Tenant/Private Cloud", "input_type": "textarea", "field_id": "field_70"},
+            {"question": "List locations/geographies where you offer Private and Multi-Tenant cloud services", "data_type": "Vmware: Multi-Tenant/Private Cloud", "input_type": "textarea", "field_id": "field_71"},
+            {"question": "Do you offer a portal for customer management of cloud resources ( deploy vm, change virtual hardware, shutdown/power on, clone vm, templates, view resource utilization etc.)", "data_type": "Vmware: Multi-Tenant/Private Cloud", "input_type": "radio", "field_id": "field_72"},
+            {"question": "Do you leverage VMware VCD", "data_type": "Vmware: Multi-Tenant/Private Cloud", "input_type": "textarea", "field_id": "field_73"},
+            {"question": "Does your multi-tenant and/or private cloud  offer VMware NSX features, please list", "data_type": "Vmware: Multi-Tenant/Private Cloud", "input_type": "textarea", "field_id": "field_74"},
+            {"question": "List options for hyper-converged  Private Cloud", "data_type": "Vmware: Multi-Tenant/Private Cloud", "input_type": "textarea", "field_id": "field_75"},
+            {"question": "Do you offer shared storage options, if so please list tiers and associated performance levels", "data_type": "Vmware: Multi-Tenant/Private Cloud", "input_type": "radio", "field_id": "field_76"},
+            {"question": "Published API for orchestration", "data_type": "Vmware: Multi-Tenant/Private Cloud", "input_type": "textarea", "field_id": "field_77"},
+            {"question": "Monitoring/alerting ( up/down, vCPU utilization, memory utilization, file system utilization, processes , apps etc)", "data_type": "Vmware: Multi-Tenant/Private Cloud", "input_type": "textarea", "field_id": "field_78"},
+            {"question": "Do you offer cloud readiness assessment for VMware based multi-tenant/private cloud", "data_type": "Vmware: Multi-Tenant/Private Cloud", "input_type": "radio", "field_id": "field_79"},
+            {"question": "Do you offer migration assistance from customer premise (VMware) workloads? If so please explain capabilities", "data_type": "Vmware: Multi-Tenant/Private Cloud", "input_type": "radio", "field_id": "field_80"},
+            {"question": "Can customers co-manage or have read only access to aspects of cloud services (Firewall/Load Balancer/vCenter etc.), if so please list components that can be co-managedor have RO access", "data_type": "Vmware: Multi-Tenant/Private Cloud", "input_type": "textarea", "field_id": "field_81"},
+            {"question": "How do you charge for multi-tenant cloud", "data_type": "Vmware: Multi-Tenant/Private Cloud", "input_type": "radio", "field_id": "field_82"},
+            {"question": "How do you charge for private cloud", "data_type": "Vmware: Multi-Tenant/Private Cloud", "input_type": "radio", "field_id": "field_83"},
+            {"question": "Do you support hybrid cloud (Multi-tenant and private cloud connected via layer 2)", "data_type": "Vmware: Multi-Tenant/Private Cloud", "input_type": "radio", "field_id": "field_84"},
+            {"question": "Describe your connectivity options to Azure, AWS and GCP", "data_type": "Network", "input_type": "textarea", "field_id": "field_85"},
+            {"question": "Latencies (DC to DC, DC to Azure/AWS/GCP)", "data_type": "Network", "input_type": "textarea", "field_id": "field_86"},
+            {"question": "What load balancing options to you offer", "data_type": "Network", "input_type": "textarea", "field_id": "field_87"},
+            {"question": "Are you carrier agnostic, can client bring circuits, SDWAN", "data_type": "Network", "input_type": "radio", "field_id": "field_88"},
+            {"question": "Do you offer Managed Firewall, list platform's", "data_type": "Security", "input_type": "radio", "field_id": "field_89"},
+            {"question": "Do you offer IDS/IPS, list platform's", "data_type": "Security", "input_type": "radio", "field_id": "field_90"},
+            {"question": "Do you offer Managed SIEM, list platform's", "data_type": "Security", "input_type": "radio", "field_id": "field_91"},
+            {"question": "Do you offer WAF, list platform's", "data_type": "Security", "input_type": "radio", "field_id": "field_92"},
+            {"question": "Do you allow for co-management of sercurity infrastructure? If so please list platforms where co-management is supported", "data_type": "Security", "input_type": "radio", "field_id": "field_93"},
+            {"question": "Do you offer DDoS protection, list platform's", "data_type": "Security", "input_type": "radio", "field_id": "field_94"},
+            {"question": "Do have a SOC", "data_type": "Security", "input_type": "textarea", "field_id": "field_95"},
+            {"question": "Do you offer MDR (Managed Detect and Response)", "data_type": "Security", "input_type": "radio", "field_id": "field_96"},
+            {"question": "Do you offer managed backup services, list platform's", "data_type": "Data Protection - Backup", "input_type": "radio", "field_id": "field_97"},
+            {"question": "Do you offer Image based backup supported", "data_type": "Data Protection - Backup", "input_type": "radio", "field_id": "field_98"},
+            {"question": "Do you offer file level backup supported", "data_type": "Data Protection - Backup", "input_type": "radio", "field_id": "field_99"},
+            {"question": "Do you offer Microsoft VSS application consistency backups supported", "data_type": "Data Protection - Backup", "input_type": "radio", "field_id": "field_100"},
+            {"question": "Local redundant and Geo redundant storage options", "data_type": "Data Protection - Backup", "input_type": "textarea", "field_id": "field_101"},
+            {"question": "Do you offer Self service restoration", "data_type": "Data Protection - Backup", "input_type": "radio", "field_id": "field_102"},
+            {"question": "Do you offer Data encryption at rest", "data_type": "Data Protection - Backup", "input_type": "radio", "field_id": "field_103"},
+            {"question": "Do you offer managed DRaaS", "data_type": "Data Protection - DR", "input_type": "radio", "field_id": "field_104"},
+            {"question": "Do you offer customer and/or hybrid managed DRaaS", "data_type": "Data Protection - DR", "input_type": "radio", "field_id": "field_105"},
+            {"question": "What are your supported RPO(s)", "data_type": "Data Protection - DR", "input_type": "radio", "field_id": "field_106"},
+            {"question": "How do you charge for DRaaS", "data_type": "Data Protection - DR", "input_type": "radio", "field_id": "field_107"},
+            {"question": "Is a DR runbook created/maintained", "data_type": "Data Protection - DR", "input_type": "radio", "field_id": "field_108"},
+            {"question": "What replication/orchestration technologies do you offer", "data_type": "Data Protection - DR", "input_type": "radio", "field_id": "field_109"},
+            {"question": "How many tests are built into offering", "data_type": "Data Protection - DR", "input_type": "number", "field_id": "field_110"},
+            {"question": "Do you support RedHat and Windows server OS's", "data_type": "Data Protection - DR", "input_type": "radio", "field_id": "field_111"},
+            {"question": "Do you offer managed AWS/Azure/Google, if so are there certain services not supported (PaaS/Microservices/AI/Big Data etc)", "data_type": "Data Protection - DR", "input_type": "radio", "field_id": "field_112"},
+            {"question": "Do you offer managed VMware on AWS/Azure, describe managed service offerings", "data_type": "Data Protection - DR", "input_type": "radio", "field_id": "field_113"},
+            {"question": "Are your managed AWS/Azure/Google offering supported in house or outsourced to partner", "data_type": "AWS/Azure/Google", "input_type": "radio", "field_id": "field_114"},
+            {"question": "Do you offer cost optimization services", "data_type": "AWS/Azure/Google", "input_type": "textarea", "field_id": "field_115"},
+            {"question": "How many AWS/Azure/Google cerfified engineers  on staff", "data_type": "AWS/Azure/Google", "input_type": "number", "field_id": "field_116"},
+            {"question": "Do you offer cloud readiness asessments for AWS/Azure/Google if so is this in house or outsourced to partner", "data_type": "AWS/Azure/Google", "input_type": "radio", "field_id": "field_117"},
+            {"question": "Do you offer cloud transformation (replatform/refactor workloads and applications), if so is this in house or outsourced to partner", "data_type": "AWS/Azure/Google", "input_type": "radio", "field_id": "field_118"},
+            {"question": "Do you offer migration assistance from customer premise (VMware) workloads to AWS/Azure/Google? If so please explain capabilities", "data_type": "AWS/Azure/Google", "input_type": "textarea", "field_id": "field_119"},
+            {"question": "Do you offer colocation, if so list minimum space/cabinet requirements", "data_type": "AWS/Azure/Google", "input_type": "radio", "field_id": "field_120"},
+            {"question": "Describe power delivery options (dedicated power whip/metered power)", "data_type": "AWS/Azure/Google", "input_type": "textarea", "field_id": "field_121"},
+            {"question": "Year CCaaS platform introduced", "data_type": "Colocation", "input_type": "textarea", "field_id": "field_122"},
+            {"question": "Current CCaaS endpoints deployed", "data_type": "Colocation", "input_type": "textarea", "field_id": "field_123"}
+        ];
+
+        function generateQuestions() {
+            const container = document.getElementById('dynamic-questions');
+            
+            surveyQuestions.forEach((q, index) => {
+                const formGroup = document.createElement('div');
+                formGroup.className = 'form-group';
+                
+                const fieldName = q.question.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+                
+                let inputElement = '';
+                
+                switch(q.input_type) {
+                    case 'radio':
+                        inputElement = `
+                            <div class="radio-group">
+                                <label class="radio-option">
+                                    <input type="radio" name="` + fieldName + `" value="yes" id="` + fieldName + `_yes">
+                                    <span class="radio-label">Yes</span>
+                                </label>
+                                <label class="radio-option">
+                                    <input type="radio" name="` + fieldName + `" value="no" id="` + fieldName + `_no">
+                                    <span class="radio-label">No</span>
+                                </label>
+                                <label class="radio-option">
+                                    <input type="radio" name="` + fieldName + `" value="partial" id="` + fieldName + `_partial">
+                                    <span class="radio-label">Partial/Limited</span>
+                                </label>
+                            </div>
+                        `;
+                        break;
+                    case 'number':
+                        inputElement = `<input type="number" id="` + fieldName + `" name="` + fieldName + `" placeholder="Enter number">`;
+                        break;
+                    case 'text':
+                        inputElement = `<input type="text" id="` + fieldName + `" name="` + fieldName + `" placeholder="Enter text">`;
+                        break;
+                    case 'textarea':
+                    default:
+                        inputElement = `<textarea id="` + fieldName + `" name="` + fieldName + `" placeholder="Please provide details..."></textarea>`;
+                        break;
+                }
+                
+                formGroup.innerHTML = `
+                    <label for="` + fieldName + `">
+                        <span class="question-category">` + q.data_type + `</span><br>
+                        ` + q.question + `
+                    </label>
+                    ` + inputElement + `
+                `;
+                
+                container.appendChild(formGroup);
+            });
+        }
+
+        function updateProgress() {
+            const form = document.getElementById('surveyForm');
+            let filled = 0;
+            let totalQuestions = 0;
+            
+            const contactInputs = form.querySelectorAll('.contact-section input[required]');
+            contactInputs.forEach(input => {
+                totalQuestions++;
+                if (input.value.trim() !== '') {
+                    filled++;
+                }
+            });
+            
+            surveyQuestions.forEach(q => {
+                totalQuestions++;
+                const fieldName = q.question.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+                if (q.input_type === 'radio') {
+                    const radioChecked = form.querySelector(`input[name="` + fieldName + `"]:checked`);
+                    if (radioChecked) {
+                        filled++;
+                    }
+                } else {
+                    const input = form.querySelector(`#` + fieldName);
+                    if (input && input.value.trim() !== '') {
+                        filled++;
+                    }
+                }
+            });
+            
+            const percentage = totalQuestions > 0 ? (filled / totalQuestions) * 100 : 0;
+            document.getElementById('progress-fill').style.width = percentage + '%';
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            generateQuestions();
+            
+            const form = document.getElementById('surveyForm');
+            form.addEventListener('input', updateProgress);
+            form.addEventListener('change', updateProgress);
+            
+            document.getElementById('surveyForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const submitBtn = document.getElementById('submit-btn');
+                const statusDiv = document.getElementById('status');
+                const webhookUrl = 'https://opex-form-webhook-4jypryamoq-uc.a.run.app';
+                
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Submitting...';
+                statusDiv.style.display = 'none';
+                
+                const formData = new FormData(this);
+                const data = {
+                    formName: 'cloud-draas-survey',
+                    formData: {
+                        timestamp: new Date().toISOString(),
+                        source: 'draas-assessment'
+                    }
+                };
+                
+                for (let [key, value] of formData.entries()) {
+                    data.formData[key] = value;
+                }
+                
+                try {
+                    const response = await fetch(webhookUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(data)
+                    });
+                    
+                    if (response.ok) {
+                        statusDiv.className = 'status success';
+                        statusDiv.textContent = 'Survey submitted successfully! Thank you for your responses.';
+                        statusDiv.style.display = 'block';
+                        
+                        this.reset();
+                        updateProgress();
+                    } else {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
+                } catch (error) {
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = `Error submitting survey: ${error.message}`;
+                    statusDiv.style.display = 'block';
+                }
+                
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit Survey';
+            });
+        });
+    </script>
+</body>
+</html>
