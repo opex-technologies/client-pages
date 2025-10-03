@@ -29,9 +29,22 @@ HTML Forms → Cloud Function (webhook) → BigQuery → Analytics
 ### Key Components
 
 - **Cloud Function**: `backend/main.py` - Webhook endpoint at `https://opex-form-webhook-4jypryamoq-uc.a.run.app`
-- **Forms**: 
-  - `Web/initialwebpage.html` - Contact form
-  - `Web/networksurvey.html` - SASE network security survey
+- **Contact Form**: `Web/initialwebpage.html` - General contact form
+- **Survey Forms**: `Web/surveys/` - 14 specialized assessment surveys organized by opportunity type/subtype:
+  - Managed Service Provider (208 questions)
+  - Cloud DRaaS (123 questions)
+  - CCaaS Contact Center (105 questions) 
+  - CCaaS IVA (63 questions)
+  - Data Center Colocation (96 questions)
+  - UCaaS Phone System (98 questions)
+  - Security MDR (42 questions)
+  - Security Penetration Test (14 questions)
+  - Network Aggregation (38 questions)
+  - Network NaaS (83 questions)
+  - Network SD-WAN (106 questions)
+  - Security SASE (67 questions)
+  - Expense Management Mobile (106 questions)
+  - Network SASE (existing survey, 44 questions)
 - **BigQuery Dataset**: `opex_dev` with dynamic table creation based on form structure
 - **Static Assets**: Logo hosted at `https://storage.googleapis.com/opex-web-forms-20250716-145646/opex-logo.avif`
 
@@ -63,8 +76,16 @@ python3 backload_sase_rfi.py
 python3 verify_data.py
 ```
 
-### Web Forms
-Forms are static HTML files that can be opened directly in browsers or served via any web server. They submit to the deployed Cloud Function webhook.
+### Survey Forms
+All survey forms are static HTML files located in `Web/surveys/` that can be opened directly in browsers or served via any web server. Each form:
+- Includes universal "All/All" questions plus type-specific questions from the Question Database CSV
+- Features dynamic question generation with appropriate input types (radio, textarea, number, text)
+- Submits to the deployed Cloud Function webhook with unique form identifiers
+- Uses responsive Opex Technologies branding and styling
+- Includes progress tracking and form validation
+
+### Contact Form
+The general contact form is located at `Web/initialwebpage.html`.
 
 ## Data Schema
 
