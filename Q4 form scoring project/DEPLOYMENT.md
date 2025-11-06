@@ -1,431 +1,296 @@
-# Deployment Guide - Form Builder & Response Scoring System
+# Deployment Guide
 
-**Created**: November 5, 2025
-**Status**: Phase 1 - Infrastructure & Authentication
-**Environment**: Google Cloud Platform (GCP)
+**Project**: Form Builder & Response Scorer System
+**Version**: 1.0.0
+**Last Updated**: November 5, 2025
+**Status**: Phase 1-3 Complete
 
-## Overview
-
-This document provides complete deployment instructions for the Form Builder & Response Scoring System authentication infrastructure.
-
-## Table of Contents
-
-1. [Prerequisites](#prerequisites)
-2. [Backend Deployment (Authentication API)](#backend-deployment)
-3. [Frontend Deployment (Auth UI)](#frontend-deployment)
-4. [Environment Configuration](#environment-configuration)
-5. [Known Issues](#known-issues)
-6. [Monitoring & Logs](#monitoring--logs)
-7. [Rollback Procedures](#rollback-procedures)
+Complete deployment guide for all system components.
 
 ---
 
-## Prerequisites
-
-### Required Tools
-
-- **Google Cloud SDK** (gcloud CLI) - v450.0.0+
-- **Node.js** - v18.x or later
-- **npm** - v9.x or later
-- **Python** - v3.10+
-
-### GCP Project Setup
+## Quick Start
 
 ```bash
-# Set your GCP project
-export PROJECT_ID="opex-data-lake-k23k4y98m"
-gcloud config set project $PROJECT_ID
+# Deploy all backend APIs
+cd "Q4 form scoring project"
+./deploy-backend.sh  # Deploy all Cloud Functions
 
-# Enable required APIs
-gcloud services enable cloudfunctions.googleapis.com
-gcloud services enable bigquery.googleapis.com
-gcloud services enable run.googleapis.com
-gcloud services enable cloudbuild.googleapis.com
+# Deploy frontend
+cd frontend/form-builder
+npm run deploy  # Deploy to GitHub Pages
 ```
 
-### Authentication
+**Live URLs**:
+- Frontend: https://landoncolvig.github.io/opex-technologies/
+- Auth API: https://us-central1-opex-data-lake-k23k4y98m.cloudfunctions.net/auth-api
+- Form Builder API: https://us-central1-opex-data-lake-k23k4y98m.cloudfunctions.net/form-builder-api
+- Response Scorer API: https://us-central1-opex-data-lake-k23k4y98m.cloudfunctions.net/response-scorer-api
 
-```bash
-# Login to GCP
-gcloud auth login
+---
 
-# Set application default credentials
-gcloud auth application-default login
+## System Architecture
+
+```
+Frontend (GitHub Pages)
+    ↓
+Cloud Functions (3 APIs)
+    ↓
+BigQuery (4 datasets, 11 tables)
 ```
 
 ---
 
 ## Backend Deployment
 
-### 1. Environment Variables
-
-Create environment variables for deployment:
+### 1. Authentication API
 
 ```bash
-export PROJECT_ID="opex-data-lake-k23k4y98m"
-export REGION="us-central1"
-export JWT_SECRET_KEY="94_ZkQrzjLcZxefMEcFrxFBdlCK5YTpG777czsv-m-A"  # CHANGE IN PRODUCTION
-```
-
-⚠️ **Security Warning**: The JWT_SECRET_KEY above is for development. Generate a new secure key for production:
-
-```bash
-# Generate secure JWT secret
-export JWT_SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))")
-echo "JWT_SECRET_KEY: $JWT_SECRET_KEY"
-```
-
-### 2. Deploy Authentication API
-
-Navigate to the auth directory and deploy:
-
-```bash
-cd "backend/auth"
-
-# Deploy Cloud Function (Gen2)
+cd backend/auth
 gcloud functions deploy auth-api \
   --gen2 \
-  --runtime=python310 \
-  --region=$REGION \
+  --runtime=python311 \
+  --region=us-central1 \
   --source=. \
-  --entry-point=auth_handler \
+  --entry-point=main \
   --trigger-http \
   --allow-unauthenticated \
-  --set-env-vars="PROJECT_ID=$PROJECT_ID,JWT_SECRET_KEY=$JWT_SECRET_KEY,ENVIRONMENT=production" \
+  --set-env-vars="JWT_SECRET_KEY=<YOUR_SECRET>" \
   --timeout=60s \
-  --memory=512MB \
-  --max-instances=10
+  --memory=256MB
 ```
 
-### 3. Verify Deployment
+### 2. Form Builder API
 
 ```bash
-# Get function URL
-FUNCTION_URL=$(gcloud functions describe auth-api \
-  --region=$REGION \
-  --format='value(serviceConfig.uri)')
-
-echo "Authentication API deployed at: $FUNCTION_URL"
-
-# Test registration endpoint
-curl -X POST "$FUNCTION_URL/auth/register" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "test@example.com",
-    "password": "TestP@ssw0rd123",
-    "full_name": "Test User"
-  }'
+cd backend/form_builder
+gcloud functions deploy form-builder-api \
+  --gen2 \
+  --runtime=python311 \
+  --region=us-central1 \
+  --source=. \
+  --entry-point=main \
+  --trigger-http \
+  --allow-unauthenticated \
+  --set-env-vars="JWT_SECRET_KEY=<YOUR_SECRET>,GITHUB_TOKEN=<YOUR_TOKEN>" \
+  --timeout=540s \
+  --memory=512MB
 ```
 
-### 4. Deployment Output
+### 3. Response Scorer API
 
-Expected output:
-
+```bash
+cd backend/response_scorer
+gcloud functions deploy response-scorer-api \
+  --gen2 \
+  --runtime=python311 \
+  --region=us-central1 \
+  --source=. \
+  --entry-point=main \
+  --trigger-http \
+  --allow-unauthenticated \
+  --set-env-vars="JWT_SECRET_KEY=<YOUR_SECRET>" \
+  --timeout=60s \
+  --memory=256MB
 ```
-state: ACTIVE
-url: https://us-central1-opex-data-lake-k23k4y98m.cloudfunctions.net/auth-api
-```
-
-**API Endpoints Available**:
-- `POST /auth/register` - User registration
-- `POST /auth/login` - User login (⚠️ see known issues)
-- `POST /auth/refresh` - Token refresh
-- `POST /auth/logout` - User logout
-- `POST /auth/verify` - Token verification
-- `GET /auth/me` - Get current user
 
 ---
 
 ## Frontend Deployment
 
-### 1. Install Dependencies
-
 ```bash
-cd "frontend/auth-ui"
+cd frontend/form-builder
+
+# Install dependencies (first time only)
 npm install
-```
 
-### 2. Configure API URL
-
-The production API URL is already configured in `.env.production`:
-
-```bash
-VITE_API_BASE_URL=https://us-central1-opex-data-lake-k23k4y98m.cloudfunctions.net/auth-api
-```
-
-### 3. Build for Production
-
-```bash
-npm run build
-```
-
-This creates an optimized production build in the `dist/` directory.
-
-### 4. Deploy to GitHub Pages
-
-```bash
+# Build and deploy to GitHub Pages
 npm run deploy
 ```
 
-This will:
-1. Build the production bundle
-2. Deploy to GitHub Pages (gh-pages branch)
-3. Make the UI available at your GitHub Pages URL
+The site will be live at: https://landoncolvig.github.io/opex-technologies/
 
-### 5. Alternative: Deploy to Cloud Storage
+---
 
-For hosting on Google Cloud Storage:
+## Database Setup
 
+### Create Datasets
 ```bash
-# Create storage bucket (if not exists)
-gsutil mb -p $PROJECT_ID -l $REGION gs://opex-auth-ui
-
-# Enable website hosting
-gsutil web set -m index.html -e index.html gs://opex-auth-ui
-
-# Upload dist files
-gsutil -m cp -r dist/* gs://opex-auth-ui/
-
-# Make public
-gsutil iam ch allUsers:objectViewer gs://opex-auth-ui
+bq mk --dataset --location=US opex-data-lake-k23k4y98m:auth
+bq mk --dataset --location=US opex-data-lake-k23k4y98m:form_builder
+bq mk --dataset --location=US opex-data-lake-k23k4y98m:scoring
 ```
 
----
-
-## Environment Configuration
-
-### Backend Environment Variables
-
-| Variable | Description | Required | Default |
-|----------|-------------|----------|---------|
-| `PROJECT_ID` | GCP Project ID | Yes | opex-data-lake-k23k4y98m |
-| `JWT_SECRET_KEY` | Secret key for JWT signing | Yes | (must set in production) |
-| `ENVIRONMENT` | Deployment environment | No | development |
-| `REGION` | GCP region | No | us-central1 |
-| `JWT_EXPIRATION_HOURS` | Access token lifespan | No | 24 |
-| `JWT_REFRESH_EXPIRATION_DAYS` | Refresh token lifespan | No | 30 |
-| `BCRYPT_ROUNDS` | Password hashing cost | No | 12 |
-| `MAX_LOGIN_ATTEMPTS` | Failed login limit | No | 5 |
-| `ACCOUNT_LOCKOUT_MINUTES` | Lockout duration | No | 30 |
-
-### Frontend Environment Variables
-
-| Variable | Description | Required | Default |
-|----------|-------------|----------|---------|
-| `VITE_API_BASE_URL` | Authentication API URL | Yes | http://localhost:8080 |
-
----
-
-## Known Issues
-
-### ⚠️ BigQuery Streaming Buffer Limitation
-
-**Issue**: Login fails for newly registered users (within 90 minutes of registration)
-
-**Cause**: BigQuery's streaming buffer prevents UPDATE/DELETE operations on recently inserted rows. The authentication workflow requires updating user records during login (last_login timestamp, failed_login_attempts counter).
-
-**Impact**:
-- ✅ User registration works
-- ❌ Login fails with error: "UPDATE statement would affect rows in streaming buffer"
-- ✅ Token verification works
-- ❌ Failed login tracking doesn't work
-
-**Workaround**: Wait 90 minutes after registration before attempting login
-
-**Permanent Solution**: Migrate authentication data from BigQuery to Firestore or Cloud SQL
-
-See `backend/auth/BIGQUERY_LIMITATIONS.md` for detailed migration plan.
-
----
-
-## Monitoring & Logs
-
-### View Cloud Function Logs
-
+### Deploy Schemas
 ```bash
-# Real-time logs
-gcloud functions logs read auth-api \
-  --region=$REGION \
-  --limit=50 \
-  --follow
-
-# Filter errors only
-gcloud functions logs read auth-api \
-  --region=$REGION \
-  --limit=50 | grep "ERROR"
+cd database
+python3 deploy_schemas.py
 ```
 
-### Cloud Console
-
-View logs in the GCP Console:
+### Migrate Question Database
+```bash
+cd database/migrations
+python3 migrate_question_database.py
 ```
-https://console.cloud.google.com/functions/details/us-central1/auth-api?project=opex-data-lake-k23k4y98m
-```
 
-### Key Metrics to Monitor
-
-1. **Function Invocations** - Request count
-2. **Error Rate** - Failed requests
-3. **Execution Time** - Response latency
-4. **Memory Usage** - Resource consumption
-5. **Cold Starts** - Instance initialization time
-
-### BigQuery Data Verification
-
-Check authentication data:
-
-```sql
--- View all users
-SELECT
-  user_id,
-  email,
-  full_name,
-  status,
-  created_at,
-  last_login,
-  failed_login_attempts
-FROM `opex-data-lake-k23k4y98m.auth.users`
-ORDER BY created_at DESC;
-
--- View active sessions
-SELECT
-  session_id,
-  user_id,
-  created_at,
-  expires_at,
-  is_active
-FROM `opex-data-lake-k23k4y98m.auth.sessions`
-WHERE is_active = true
-  AND expires_at > CURRENT_TIMESTAMP()
-ORDER BY created_at DESC;
+### Initialize Response Scorer Tables
+```bash
+cd backend/response_scorer
+python3 init_database.py
 ```
 
 ---
 
-## Rollback Procedures
+## Verification
 
-### Rollback Backend
-
+### Test Backend APIs
 ```bash
-# List recent revisions
-gcloud functions describe auth-api \
-  --region=$REGION \
-  --format='value(serviceConfig.revision)'
+# Auth API
+curl https://us-central1-opex-data-lake-k23k4y98m.cloudfunctions.net/auth-api/health
+
+# Form Builder API
+curl https://us-central1-opex-data-lake-k23k4y98m.cloudfunctions.net/form-builder-api/health
+
+# Response Scorer API (list responses)
+curl "https://us-central1-opex-data-lake-k23k4y98m.cloudfunctions.net/response-scorer-api/responses?page=1&page_size=1"
+```
+
+### Test Frontend
+Open https://landoncolvig.github.io/opex-technologies/ in your browser.
+
+### Run Test Scripts
+```bash
+# Test Form Builder API
+cd backend/form_builder
+bash test_api.sh
+
+# Test Response Scorer API
+cd backend/response_scorer
+bash test_api.sh
+```
+
+---
+
+## Environment Variables
+
+### Required for All APIs
+- `JWT_SECRET_KEY` - Secret key for JWT signing (32+ chars)
+
+### Form Builder API Only
+- `GITHUB_TOKEN` - GitHub PAT with `repo` scope
+
+### Frontend (.env)
+```env
+VITE_API_URL=https://us-central1-opex-data-lake-k23k4y98m.cloudfunctions.net/form-builder-api
+VITE_AUTH_API_URL=https://us-central1-opex-data-lake-k23k4y98m.cloudfunctions.net/auth-api
+VITE_ENV=production
+```
+
+---
+
+## Troubleshooting
+
+### Backend Issues
+```bash
+# View logs
+gcloud functions logs read <function-name> --gen2 --region=us-central1 --limit=50
+
+# Check function status
+gcloud functions describe <function-name> --gen2 --region=us-central1
+```
+
+### Frontend Issues
+- Clear browser cache
+- Check gh-pages branch: `git ls-remote origin gh-pages`
+- Wait 1-2 minutes for GitHub Pages rebuild
+
+### Database Issues
+- BigQuery streaming buffer has 90-minute delay for UPDATEs/DELETEs
+- See `backend/*/BIGQUERY_LIMITATIONS.md` for details
+
+---
+
+## Rollback
+
+### Backend
+```bash
+# List versions
+gcloud functions describe <function-name> --gen2 --region=us-central1
 
 # Deploy previous version
-gcloud functions deploy auth-api \
+gcloud functions deploy <function-name> --gen2 --region=us-central1 --source=<previous-source>
+```
+
+### Frontend
+```bash
+git checkout gh-pages
+git reset --hard <previous-commit>
+git push --force origin gh-pages
+```
+
+---
+
+## Monitoring
+
+```bash
+# Tail logs (real-time)
+gcloud functions logs tail <function-name> --gen2 --region=us-central1
+
+# Filter errors only
+gcloud functions logs read <function-name> \
   --gen2 \
-  --runtime=python310 \
-  --region=$REGION \
-  --source=. \
-  --entry-point=auth_handler \
-  --trigger-http \
-  --allow-unauthenticated
-```
-
-### Rollback Frontend
-
-GitHub Pages:
-```bash
-# Revert to previous commit
-git revert HEAD
-git push origin main
-
-# Redeploy
-npm run deploy
-```
-
-Cloud Storage:
-```bash
-# Backup current version
-gsutil -m cp -r gs://opex-auth-ui gs://opex-auth-ui-backup-$(date +%Y%m%d)
-
-# Restore previous version
-gsutil -m cp -r gs://opex-auth-ui-backup-YYYYMMDD/* gs://opex-auth-ui/
+  --region=us-central1 \
+  --filter="severity>=ERROR" \
+  --limit=100
 ```
 
 ---
 
 ## Security Checklist
 
-### Before Production Deployment
+- [ ] JWT_SECRET_KEY is secure (32+ random characters)
+- [ ] GitHub token has minimal permissions
+- [ ] BigQuery IAM policies configured
+- [ ] Cloud Function service accounts have correct roles
+- [ ] No secrets in frontend code
+- [ ] CORS configured properly
 
-- [ ] Generate new JWT_SECRET_KEY (not the development key)
-- [ ] Set ENVIRONMENT=production
-- [ ] Review CORS settings in response_helpers_standalone.py
-- [ ] Enable rate limiting (if implemented)
-- [ ] Restrict Cloud Function access (remove --allow-unauthenticated)
-- [ ] Set up API Gateway with authentication
-- [ ] Enable Cloud Armor for DDoS protection
-- [ ] Configure Cloud CDN for frontend
-- [ ] Set up SSL/TLS certificates
-- [ ] Review IAM permissions
-- [ ] Enable audit logging
-- [ ] Set up alerting for security events
+---
+
+## Deployment Checklist
+
+### Pre-Deployment
+- [ ] Tests passing
+- [ ] Environment variables set
+- [ ] Database schemas updated
+- [ ] Code reviewed
+
+### Deployment
+- [ ] Backend APIs deployed
+- [ ] Database migrations complete
+- [ ] Frontend built successfully
+- [ ] Frontend deployed to GitHub Pages
 
 ### Post-Deployment
-
-- [ ] Test all endpoints thoroughly
-- [ ] Verify CORS headers
-- [ ] Check JWT token expiration
-- [ ] Test rate limiting
-- [ ] Review security logs
-- [ ] Perform penetration testing
-- [ ] Document API for users
+- [ ] Health checks passing
+- [ ] End-to-end test successful
+- [ ] Logs monitored
+- [ ] Team notified
 
 ---
 
-## Troubleshooting
+## Support
 
-### Function Won't Deploy
+**Project Manager**: Landon Colvig
+**Email**: landon@daytanalytics.com
+**Phone**: (928) 715-3039
 
-**Error**: "Container Healthcheck failed"
-
-**Solution**: Check imports in main.py and ensure all standalone files are present.
-
-### Registration Works But Login Fails
-
-**Error**: "UPDATE statement would affect rows in streaming buffer"
-
-**Solution**: This is the known BigQuery limitation. Wait 90 minutes or migrate to Firestore.
-
-### CORS Errors in Browser
-
-**Error**: "Access-Control-Allow-Origin header is missing"
-
-**Solution**: Verify CORS headers in response_helpers_standalone.py:
-```python
-'Access-Control-Allow-Origin': '*',  # Update for production
-'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-```
-
-### JWT Verification Fails
-
-**Error**: "Invalid signature"
-
-**Solution**: Ensure JWT_SECRET_KEY matches between all environments and hasn't changed.
+**Documentation**:
+- [Project Status](./PROJECT_STATUS.md)
+- [Implementation Plan](./IMPLEMENTATION_PLAN.md)
+- [Backend Docs](./backend/README.md)
 
 ---
 
-## Next Steps
-
-1. **Immediate**: Review BigQuery limitations document
-2. **Short-term**: Plan Firestore migration (see BIGQUERY_LIMITATIONS.md)
-3. **Medium-term**: Implement API Gateway and rate limiting
-4. **Long-term**: Add MFA, OAuth, and advanced security features
-
----
-
-## Support & Contact
-
-**Project**: Form Builder & Response Scoring System
-**Owner**: Opex Technologies
-**Documentation**: See `IMPLEMENTATION_PLAN.md` and `PROJECT_STATUS.md`
-**Issue Tracker**: Track issues in project documentation
-
----
-
-**Last Updated**: November 5, 2025
 **Version**: 1.0.0
-**Deployment Status**: ✅ Backend Deployed | ⚠️ Functional with limitations
+**Last Updated**: November 5, 2025
