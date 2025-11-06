@@ -1,10 +1,11 @@
 /**
  * Question Database Page
- * Browse and search all available questions
+ * Browse, search, and manage all available questions
+ * Includes full CRUD operations: Create, Read, Update, Delete
  */
 
 import { useEffect, useState } from 'react';
-import { Search, Filter, Database, TrendingUp, Download, Info } from 'lucide-react';
+import { Search, Filter, Database, TrendingUp, Download, Info, Plus, Edit, Trash2, X, Save } from 'lucide-react';
 import { formBuilderAPI, getErrorMessage } from '../services/formBuilderApi';
 import toast from 'react-hot-toast';
 
@@ -19,6 +20,11 @@ const QuestionDatabasePage = () => {
   const [selectedQuestion, setSelectedQuestion] = useState(null);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+
+  // Editor state
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [editingQuestion, setEditingQuestion] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Statistics
   const [stats, setStats] = useState({
@@ -73,13 +79,8 @@ const QuestionDatabasePage = () => {
     const byInputType = {};
 
     questionList.forEach(q => {
-      // By category
       byCategory[q.category] = (byCategory[q.category] || 0) + 1;
-
-      // By opportunity type
       byType[q.opportunity_type] = (byType[q.opportunity_type] || 0) + 1;
-
-      // By input type
       byInputType[q.input_type] = (byInputType[q.input_type] || 0) + 1;
     });
 
@@ -94,7 +95,6 @@ const QuestionDatabasePage = () => {
   const applyFilters = () => {
     let filtered = [...questions];
 
-    // Search filter
     if (searchTerm) {
       filtered = filtered.filter(q =>
         q.question_text.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -102,22 +102,79 @@ const QuestionDatabasePage = () => {
       );
     }
 
-    // Category filter
     if (filterCategory !== 'all') {
       filtered = filtered.filter(q => q.category === filterCategory);
     }
 
-    // Type filter
     if (filterType !== 'all') {
       filtered = filtered.filter(q => q.opportunity_type === filterType);
     }
 
-    // Subtype filter
     if (filterSubtype !== 'all') {
       filtered = filtered.filter(q => q.opportunity_subtype === filterSubtype);
     }
 
     setFilteredQuestions(filtered);
+  };
+
+  const handleCreateQuestion = () => {
+    setEditingQuestion({
+      question_text: '',
+      category: '',
+      opportunity_type: 'All',
+      opportunity_subtype: 'All',
+      input_type: 'textarea',
+      default_weight: '',
+      help_text: '',
+    });
+    setIsEditorOpen(true);
+  };
+
+  const handleEditQuestion = (question) => {
+    setEditingQuestion({ ...question });
+    setIsEditorOpen(true);
+    setSelectedQuestion(null);
+  };
+
+  const handleSaveQuestion = async (questionData) => {
+    setIsSaving(true);
+    try {
+      if (editingQuestion.question_id) {
+        // Update existing question
+        await formBuilderAPI.updateQuestion(editingQuestion.question_id, questionData);
+        toast.success('Question updated successfully (may take up to 90 minutes to appear)');
+      } else {
+        // Create new question
+        await formBuilderAPI.createQuestion(questionData);
+        toast.success('Question created successfully');
+      }
+
+      setIsEditorOpen(false);
+      setEditingQuestion(null);
+      // Refresh questions after a short delay
+      setTimeout(() => fetchQuestions(), 1000);
+    } catch (error) {
+      console.error('Failed to save question:', error);
+      toast.error(getErrorMessage(error));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteQuestion = async (questionId) => {
+    if (!confirm('Are you sure you want to delete this question? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      await formBuilderAPI.deleteQuestion(questionId);
+      toast.success('Question deleted successfully (may take up to 90 minutes to take effect)');
+      setSelectedQuestion(null);
+      setTimeout(() => fetchQuestions(), 1000);
+    } catch (error) {
+      console.error('Failed to delete question:', error);
+      toast.error(getErrorMessage(error));
+    }
   };
 
   const handleExportCSV = () => {
@@ -143,6 +200,8 @@ const QuestionDatabasePage = () => {
     URL.revokeObjectURL(url);
     toast.success('Questions exported to CSV');
   };
+
+  // Sub-components
 
   const QuestionCard = ({ question }) => (
     <div
@@ -186,6 +245,214 @@ const QuestionDatabasePage = () => {
     </div>
   );
 
+  const QuestionEditorModal = () => {
+    const [formData, setFormData] = useState(editingQuestion || {});
+    const [errors, setErrors] = useState({});
+
+    const validate = () => {
+      const newErrors = {};
+
+      if (!formData.question_text?.trim()) {
+        newErrors.question_text = 'Question text is required';
+      } else if (formData.question_text.length > 1000) {
+        newErrors.question_text = 'Question text must be 1000 characters or less';
+      }
+
+      if (!formData.category?.trim()) {
+        newErrors.category = 'Category is required';
+      }
+
+      if (!formData.input_type) {
+        newErrors.input_type = 'Input type is required';
+      }
+
+      if (formData.default_weight && formData.default_weight !== 'Info' && formData.default_weight !== 'info') {
+        const weight = Number(formData.default_weight);
+        if (isNaN(weight) || weight < 0 || weight > 100) {
+          newErrors.default_weight = 'Weight must be between 0 and 100, or "Info"';
+        }
+      }
+
+      setErrors(newErrors);
+      return Object.keys(newErrors).length === 0;
+    };
+
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      if (validate()) {
+        handleSaveQuestion(formData);
+      }
+    };
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div className="bg-white rounded-lg shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+          <form onSubmit={handleSubmit} className="p-6">
+            <div className="flex items-start justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">
+                {editingQuestion?.question_id ? 'Edit Question' : 'Create New Question'}
+              </h2>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsEditorOpen(false);
+                  setEditingQuestion(null);
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Question Text */}
+              <div>
+                <label className="label required">Question Text</label>
+                <textarea
+                  value={formData.question_text || ''}
+                  onChange={(e) => setFormData({ ...formData, question_text: e.target.value })}
+                  rows={3}
+                  className={`input-field ${errors.question_text ? 'border-red-500' : ''}`}
+                  placeholder="Enter the question text..."
+                />
+                {errors.question_text && (
+                  <p className="text-red-500 text-sm mt-1">{errors.question_text}</p>
+                )}
+                <p className="text-sm text-gray-500 mt-1">
+                  {formData.question_text?.length || 0} / 1000 characters
+                </p>
+              </div>
+
+              {/* Category and Input Type */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="label required">Category</label>
+                  <input
+                    type="text"
+                    value={formData.category || ''}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    className={`input-field ${errors.category ? 'border-red-500' : ''}`}
+                    placeholder="e.g., Customer"
+                  />
+                  {errors.category && (
+                    <p className="text-red-500 text-sm mt-1">{errors.category}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="label required">Input Type</label>
+                  <select
+                    value={formData.input_type || 'textarea'}
+                    onChange={(e) => setFormData({ ...formData, input_type: e.target.value })}
+                    className={`input-field ${errors.input_type ? 'border-red-500' : ''}`}
+                  >
+                    <option value="text">Text (single line)</option>
+                    <option value="textarea">Textarea (multiple lines)</option>
+                    <option value="number">Number</option>
+                    <option value="radio">Radio buttons</option>
+                    <option value="select">Dropdown select</option>
+                    <option value="checkbox">Checkboxes</option>
+                  </select>
+                  {errors.input_type && (
+                    <p className="text-red-500 text-sm mt-1">{errors.input_type}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Opportunity Type and Subtype */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Opportunity Type</label>
+                  <input
+                    type="text"
+                    value={formData.opportunity_type || 'All'}
+                    onChange={(e) => setFormData({ ...formData, opportunity_type: e.target.value })}
+                    className="input-field"
+                    placeholder="All"
+                  />
+                  <p className="text-sm text-gray-500 mt-1">Leave as "All" for universal questions</p>
+                </div>
+
+                <div>
+                  <label className="label">Opportunity Subtype</label>
+                  <input
+                    type="text"
+                    value={formData.opportunity_subtype || 'All'}
+                    onChange={(e) => setFormData({ ...formData, opportunity_subtype: e.target.value })}
+                    className="input-field"
+                    placeholder="All"
+                  />
+                  <p className="text-sm text-gray-500 mt-1">Leave as "All" for universal questions</p>
+                </div>
+              </div>
+
+              {/* Default Weight */}
+              <div>
+                <label className="label">Default Weight</label>
+                <input
+                  type="text"
+                  value={formData.default_weight || ''}
+                  onChange={(e) => setFormData({ ...formData, default_weight: e.target.value })}
+                  className={`input-field ${errors.default_weight ? 'border-red-500' : ''}`}
+                  placeholder='Enter 0-100 or "Info" for non-scored questions'
+                />
+                {errors.default_weight && (
+                  <p className="text-red-500 text-sm mt-1">{errors.default_weight}</p>
+                )}
+                <p className="text-sm text-gray-500 mt-1">
+                  0-100 for scored questions, or "Info" for informational questions
+                </p>
+              </div>
+
+              {/* Help Text */}
+              <div>
+                <label className="label">Help Text (Optional)</label>
+                <textarea
+                  value={formData.help_text || ''}
+                  onChange={(e) => setFormData({ ...formData, help_text: e.target.value })}
+                  rows={2}
+                  className="input-field"
+                  placeholder="Additional context or instructions for this question..."
+                />
+              </div>
+            </div>
+
+            {/* BigQuery Warning */}
+            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-sm text-yellow-800">
+                <strong>Note:</strong> Due to BigQuery streaming buffer limitations, updates may take up to 90 minutes to appear.
+                Created questions appear immediately.
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="mt-6 flex justify-end space-x-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsEditorOpen(false);
+                  setEditingQuestion(null);
+                }}
+                className="btn-secondary"
+                disabled={isSaving}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="btn-primary flex items-center space-x-2"
+                disabled={isSaving}
+              >
+                <Save size={20} />
+                <span>{isSaving ? 'Saving...' : 'Save Question'}</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="max-w-7xl">
       {/* Page Header */}
@@ -193,17 +460,26 @@ const QuestionDatabasePage = () => {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Question Database</h1>
           <p className="text-gray-600 mt-1">
-            Browse and search {stats.total.toLocaleString()} available questions
+            Browse and manage {stats.total.toLocaleString()} available questions
           </p>
         </div>
-        <button
-          onClick={handleExportCSV}
-          disabled={filteredQuestions.length === 0}
-          className="btn-secondary flex items-center space-x-2"
-        >
-          <Download size={20} />
-          <span>Export CSV ({filteredQuestions.length})</span>
-        </button>
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={handleCreateQuestion}
+            className="btn-primary flex items-center space-x-2"
+          >
+            <Plus size={20} />
+            <span>Create Question</span>
+          </button>
+          <button
+            onClick={handleExportCSV}
+            disabled={filteredQuestions.length === 0}
+            className="btn-secondary flex items-center space-x-2"
+          >
+            <Download size={20} />
+            <span>Export ({filteredQuestions.length})</span>
+          </button>
+        </div>
       </div>
 
       {/* Statistics */}
@@ -380,7 +656,7 @@ const QuestionDatabasePage = () => {
                   onClick={() => setSelectedQuestion(null)}
                   className="text-gray-400 hover:text-gray-600"
                 >
-                  ✕
+                  <X size={24} />
                 </button>
               </div>
 
@@ -435,18 +711,37 @@ const QuestionDatabasePage = () => {
                 )}
               </div>
 
-              <div className="mt-6 flex justify-end">
+              <div className="mt-6 flex justify-between">
                 <button
-                  onClick={() => setSelectedQuestion(null)}
-                  className="btn-primary"
+                  onClick={() => handleDeleteQuestion(selectedQuestion.question_id)}
+                  className="btn-secondary text-red-600 hover:bg-red-50 flex items-center space-x-2"
                 >
-                  Close
+                  <Trash2 size={20} />
+                  <span>Delete</span>
                 </button>
+                <div className="flex space-x-3">
+                  <button
+                    onClick={() => handleEditQuestion(selectedQuestion)}
+                    className="btn-primary flex items-center space-x-2"
+                  >
+                    <Edit size={20} />
+                    <span>Edit</span>
+                  </button>
+                  <button
+                    onClick={() => setSelectedQuestion(null)}
+                    className="btn-secondary"
+                  >
+                    Close
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* Editor Modal */}
+      {isEditorOpen && <QuestionEditorModal />}
     </div>
   );
 };

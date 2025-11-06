@@ -1,10 +1,11 @@
 """
 Form Builder API - Cloud Function
 Created: November 5, 2025
+Updated: November 5, 2025 - Added question CRUD endpoints
 
 Provides REST API for managing form templates and questions in the Form Builder system.
 
-Endpoints:
+Template Endpoints:
 - POST   /form-builder/templates          - Create new template
 - GET    /form-builder/templates          - List templates with filtering
 - GET    /form-builder/templates/:id      - Get template details
@@ -12,8 +13,20 @@ Endpoints:
 - DELETE /form-builder/templates/:id      - Delete template
 - POST   /form-builder/templates/:id/deploy - Deploy template to GitHub
 
+Question Endpoints:
+- GET    /form-builder/questions          - Query question database
+- POST   /form-builder/questions          - Create new question
+- GET    /form-builder/questions/:id      - Get question details
+- PUT    /form-builder/questions/:id      - Update question
+- DELETE /form-builder/questions/:id      - Delete question
+
+Other Endpoints:
+- POST   /form-builder/preview            - Generate form preview
+
 Authentication: JWT via Authorization: Bearer <token> header
 Permissions: view, edit, admin (see API_SPEC.md for permission matrix)
+
+Note: BigQuery streaming buffer causes 90-minute delay for UPDATE/DELETE operations.
 """
 
 import os
@@ -1080,6 +1093,335 @@ def get_question(request: Request, question_id: str, current_user: Dict) -> tupl
 
 
 # ============================================================================
+# Question CRUD Operations
+# ============================================================================
+
+def create_question(request: Request, current_user: Dict) -> tuple:
+    """
+    Create a new question in the Question Database.
+
+    POST /form-builder/questions
+    Permission: edit
+    """
+    try:
+        data = request.get_json()
+        if not data:
+            return error_response("Request body is required", "BAD_REQUEST")
+
+        # Validate required fields
+        question_text = data.get('question_text')
+        category = data.get('category')
+        opportunity_type = data.get('opportunity_type')
+        opportunity_subtype = data.get('opportunity_subtype')
+        input_type = data.get('input_type')
+
+        # Validation
+        if not question_text or not question_text.strip():
+            return error_response("question_text is required", "BAD_REQUEST")
+
+        if len(question_text) > 1000:
+            return error_response("question_text must be 1000 characters or less", "BAD_REQUEST")
+
+        if not category:
+            return error_response("category is required", "BAD_REQUEST")
+
+        if not input_type:
+            return error_response("input_type is required", "BAD_REQUEST")
+
+        # Validate input_type
+        valid_input_types = ['text', 'textarea', 'number', 'radio', 'select', 'checkbox']
+        if input_type not in valid_input_types:
+            return error_response(
+                f"input_type must be one of: {', '.join(valid_input_types)}",
+                "BAD_REQUEST"
+            )
+
+        # Validate default_weight if provided
+        default_weight = data.get('default_weight')
+        if default_weight is not None:
+            is_valid, error_msg = validate_weight(default_weight)
+            if not is_valid:
+                return error_response(error_msg, "BAD_REQUEST")
+
+        # Generate question ID
+        question_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc)
+        user_id = current_user['user_id']
+        user_email = current_user.get('email', '')
+
+        # Insert question
+        question_row = {
+            "question_id": question_id,
+            "question_text": question_text,
+            "category": category,
+            "opportunity_type": opportunity_type or "All",
+            "opportunity_subtypes": opportunity_subtype or "All",
+            "input_type": input_type,
+            "default_weight": normalize_weight(default_weight),
+            "help_text": data.get('help_text'),
+            "is_active": True,
+            "created_at": now.isoformat(),
+            "created_by": user_id,
+            "created_by_email": user_email,
+            "updated_at": None,
+            "updated_by": None
+        }
+
+        errors = bq_client.insert_rows_json(QUESTIONS_TABLE, [question_row])
+        if errors:
+            return error_response(
+                f"Failed to create question: {errors}",
+                "DATABASE_ERROR",
+                status_code=500
+            )
+
+        # Return created question
+        return success_response(
+            data={
+                "question_id": question_id,
+                "question_text": question_text,
+                "category": category,
+                "input_type": input_type,
+                "created_at": now.isoformat()
+            },
+            message="Question created successfully",
+            status_code=201
+        )
+
+    except Exception as e:
+        print(f"ERROR in create_question: {str(e)}")
+        return error_response(
+            "Internal server error",
+            "INTERNAL_ERROR",
+            {"error": str(e)},
+            status_code=500
+        )
+
+
+def update_question(request: Request, question_id: str, current_user: Dict) -> tuple:
+    """
+    Update an existing question.
+
+    PUT /form-builder/questions/:question_id
+    Permission: edit
+    """
+    try:
+        data = request.get_json()
+        if not data:
+            return error_response("Request body is required", "BAD_REQUEST")
+
+        # Check if question exists
+        check_query = f"""
+        SELECT is_active
+        FROM `{QUESTIONS_TABLE}`
+        WHERE question_id = @question_id
+        """
+
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("question_id", "STRING", question_id)
+            ]
+        )
+
+        check_result = list(bq_client.query(check_query, job_config=job_config).result())
+
+        if not check_result:
+            return error_response(
+                "Question not found",
+                "NOT_FOUND",
+                {"resource": f"question_id:{question_id}"},
+                status_code=404
+            )
+
+        # Build update query
+        update_fields = []
+        update_params = [bigquery.ScalarQueryParameter("question_id", "STRING", question_id)]
+
+        if 'question_text' in data:
+            question_text = data['question_text']
+            if not question_text or not question_text.strip():
+                return error_response("question_text cannot be empty", "BAD_REQUEST")
+            if len(question_text) > 1000:
+                return error_response("question_text must be 1000 characters or less", "BAD_REQUEST")
+            update_fields.append("question_text = @question_text")
+            update_params.append(bigquery.ScalarQueryParameter("question_text", "STRING", question_text))
+
+        if 'category' in data:
+            update_fields.append("category = @category")
+            update_params.append(bigquery.ScalarQueryParameter("category", "STRING", data['category']))
+
+        if 'opportunity_type' in data:
+            update_fields.append("opportunity_type = @opportunity_type")
+            update_params.append(bigquery.ScalarQueryParameter("opportunity_type", "STRING", data['opportunity_type'] or "All"))
+
+        if 'opportunity_subtype' in data:
+            update_fields.append("opportunity_subtypes = @opportunity_subtypes")
+            update_params.append(bigquery.ScalarQueryParameter("opportunity_subtypes", "STRING", data['opportunity_subtype'] or "All"))
+
+        if 'input_type' in data:
+            valid_input_types = ['text', 'textarea', 'number', 'radio', 'select', 'checkbox']
+            if data['input_type'] not in valid_input_types:
+                return error_response(
+                    f"input_type must be one of: {', '.join(valid_input_types)}",
+                    "BAD_REQUEST"
+                )
+            update_fields.append("input_type = @input_type")
+            update_params.append(bigquery.ScalarQueryParameter("input_type", "STRING", data['input_type']))
+
+        if 'default_weight' in data:
+            default_weight = data['default_weight']
+            if default_weight is not None:
+                is_valid, error_msg = validate_weight(default_weight)
+                if not is_valid:
+                    return error_response(error_msg, "BAD_REQUEST")
+            update_fields.append("default_weight = @default_weight")
+            update_params.append(bigquery.ScalarQueryParameter("default_weight", "FLOAT64", normalize_weight(default_weight)))
+
+        if 'help_text' in data:
+            update_fields.append("help_text = @help_text")
+            update_params.append(bigquery.ScalarQueryParameter("help_text", "STRING", data.get('help_text')))
+
+        if 'is_active' in data:
+            update_fields.append("is_active = @is_active")
+            update_params.append(bigquery.ScalarQueryParameter("is_active", "BOOL", bool(data['is_active'])))
+
+        # Always update metadata
+        now = datetime.now(timezone.utc)
+        user_id = current_user['user_id']
+        user_email = current_user.get('email', '')
+
+        update_fields.extend([
+            "updated_at = @updated_at",
+            "updated_by = @updated_by"
+        ])
+        update_params.extend([
+            bigquery.ScalarQueryParameter("updated_at", "TIMESTAMP", now),
+            bigquery.ScalarQueryParameter("updated_by", "STRING", user_id)
+        ])
+
+        if not update_fields:
+            return error_response("No fields to update", "BAD_REQUEST")
+
+        # Note: BigQuery UPDATE has 90-minute delay for streaming buffer
+        # This means updates won't be visible immediately
+        update_query = f"""
+        UPDATE `{QUESTIONS_TABLE}`
+        SET {', '.join(update_fields)}
+        WHERE question_id = @question_id
+        """
+
+        job_config = bigquery.QueryJobConfig(query_parameters=update_params)
+        bq_client.query(update_query, job_config=job_config).result()
+
+        return success_response(
+            data={
+                "question_id": question_id,
+                "updated_at": now.isoformat()
+            },
+            message="Question updated successfully (may take up to 90 minutes to appear due to BigQuery streaming buffer)"
+        )
+
+    except Exception as e:
+        print(f"ERROR in update_question: {str(e)}")
+        return error_response(
+            "Internal server error",
+            "INTERNAL_ERROR",
+            {"error": str(e)},
+            status_code=500
+        )
+
+
+def delete_question(request: Request, question_id: str, current_user: Dict) -> tuple:
+    """
+    Soft delete a question (admin only).
+    Questions in use by templates cannot be deleted.
+
+    DELETE /form-builder/questions/:question_id
+    Permission: admin
+    """
+    try:
+        # Check if question exists
+        check_query = f"""
+        SELECT is_active
+        FROM `{QUESTIONS_TABLE}`
+        WHERE question_id = @question_id
+        """
+
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("question_id", "STRING", question_id)
+            ]
+        )
+
+        check_result = list(bq_client.query(check_query, job_config=job_config).result())
+
+        if not check_result:
+            return error_response(
+                "Question not found",
+                "NOT_FOUND",
+                {"resource": f"question_id:{question_id}"},
+                status_code=404
+            )
+
+        # Check if question is used in any templates
+        usage_query = f"""
+        SELECT COUNT(*) as usage_count
+        FROM `{TEMPLATE_QUESTIONS_TABLE}` tq
+        JOIN `{TEMPLATES_TABLE}` t
+          ON tq.template_id = t.template_id
+        WHERE tq.question_id = @question_id
+          AND t.status != 'deleted'
+        """
+
+        usage_result = list(bq_client.query(usage_query, job_config=job_config).result())
+
+        if usage_result[0].usage_count > 0:
+            return error_response(
+                "Cannot delete question that is used in templates",
+                "FORBIDDEN",
+                {"usage_count": usage_result[0].usage_count},
+                status_code=403
+            )
+
+        # Soft delete question
+        now = datetime.now(timezone.utc)
+        user_id = current_user['user_id']
+
+        # Note: BigQuery UPDATE has 90-minute delay
+        delete_query = f"""
+        UPDATE `{QUESTIONS_TABLE}`
+        SET
+          is_active = FALSE,
+          updated_at = @updated_at,
+          updated_by = @updated_by
+        WHERE question_id = @question_id
+        """
+
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("question_id", "STRING", question_id),
+                bigquery.ScalarQueryParameter("updated_at", "TIMESTAMP", now),
+                bigquery.ScalarQueryParameter("updated_by", "STRING", user_id)
+            ]
+        )
+
+        bq_client.query(delete_query, job_config=job_config).result()
+
+        return success_response(
+            message="Question deleted successfully (may take up to 90 minutes to take effect due to BigQuery streaming buffer)"
+        )
+
+    except Exception as e:
+        print(f"ERROR in delete_question: {str(e)}")
+        return error_response(
+            "Internal server error",
+            "INTERNAL_ERROR",
+            {"error": str(e)},
+            status_code=500
+        )
+
+
+# ============================================================================
 # Form Generation Logic
 # ============================================================================
 
@@ -1552,10 +1894,24 @@ def form_builder_handler(request: Request):
         elif path == 'form-builder/questions' and request.method == 'GET':
             return add_cors_headers(query_questions(request, current_user))
 
+        # POST /form-builder/questions - Create question
+        elif path == 'form-builder/questions' and request.method == 'POST':
+            return add_cors_headers(create_question(request, current_user))
+
         # GET /form-builder/questions/:id - Get question
         elif path.startswith('form-builder/questions/') and request.method == 'GET':
             question_id = path.split('/')[-1]
             return add_cors_headers(get_question(request, question_id, current_user))
+
+        # PUT /form-builder/questions/:id - Update question
+        elif path.startswith('form-builder/questions/') and request.method == 'PUT':
+            question_id = path.split('/')[-1]
+            return add_cors_headers(update_question(request, question_id, current_user))
+
+        # DELETE /form-builder/questions/:id - Delete question
+        elif path.startswith('form-builder/questions/') and request.method == 'DELETE':
+            question_id = path.split('/')[-1]
+            return add_cors_headers(delete_question(request, question_id, current_user))
 
         # POST /form-builder/preview - Generate form preview
         elif path == 'form-builder/preview' and request.method == 'POST':

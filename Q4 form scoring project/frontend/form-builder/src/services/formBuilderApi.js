@@ -155,6 +155,41 @@ export const formBuilderAPI = {
     return apiClient.get(`/form-builder/questions/${questionId}`);
   },
 
+  /**
+   * Create new question
+   * @param {Object} data - Question data
+   * @param {string} data.question_text - Question text (required)
+   * @param {string} data.category - Category (required)
+   * @param {string} data.opportunity_type - Opportunity type (optional, defaults to "All")
+   * @param {string} data.opportunity_subtype - Opportunity subtype (optional, defaults to "All")
+   * @param {string} data.input_type - Input type: text, textarea, number, radio, select, checkbox (required)
+   * @param {number|string} data.default_weight - Default weight 0-100 or "Info" (optional)
+   * @param {string} data.help_text - Help text (optional)
+   * @returns {Promise} Created question
+   */
+  createQuestion: (data) => {
+    return apiClient.post('/form-builder/questions', data);
+  },
+
+  /**
+   * Update existing question
+   * @param {string} questionId - Question ID
+   * @param {Object} data - Updated question data
+   * @returns {Promise} Updated question
+   */
+  updateQuestion: (questionId, data) => {
+    return apiClient.put(`/form-builder/questions/${questionId}`, data);
+  },
+
+  /**
+   * Delete question
+   * @param {string} questionId - Question ID
+   * @returns {Promise} Success message
+   */
+  deleteQuestion: (questionId) => {
+    return apiClient.delete(`/form-builder/questions/${questionId}`);
+  },
+
   // ==================== PREVIEW ====================
 
   /**
