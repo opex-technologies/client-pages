@@ -16,6 +16,8 @@ import TemplateListPage from './pages/TemplateListPage';
 import TemplateEditorPage from './pages/TemplateEditorPage';
 import QuestionDatabasePage from './pages/QuestionDatabasePage';
 import DeploymentHistoryPage from './pages/DeploymentHistoryPage';
+import ResponseListPage from './pages/ResponseListPage';
+import ResponseDetailPage from './pages/ResponseDetailPage';
 
 function AppRoutes() {
   const { isAuthenticated } = useAuth();
@@ -92,6 +94,28 @@ function AppRoutes() {
           <ProtectedRoute>
             <Layout>
               <DeploymentHistoryPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/responses"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <ResponseListPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/responses/:id"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <ResponseDetailPage />
             </Layout>
           </ProtectedRoute>
         }

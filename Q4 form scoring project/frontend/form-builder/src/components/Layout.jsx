@@ -10,6 +10,7 @@ import {
   FileText,
   Database,
   History,
+  ClipboardList,
   LogOut,
   User,
   Menu,
@@ -45,6 +46,11 @@ const Layout = ({ children }) => {
       name: 'Question Database',
       path: '/questions',
       icon: Database,
+    },
+    {
+      name: 'Responses',
+      path: '/responses',
+      icon: ClipboardList,
     },
     {
       name: 'Deployment History',
