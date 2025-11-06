@@ -1,0 +1,4 @@
+functions-framework==3.*
+google-cloud-bigquery==3.*
+PyJWT==2.*
+Flask==3.*
