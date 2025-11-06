@@ -1,0 +1,40 @@
+# Q4 Form Scoring Project - Python Dependencies
+# Created: November 5, 2025
+
+# Google Cloud Platform
+functions-framework>=3.0.0        # Cloud Functions runtime
+google-cloud-bigquery>=3.0.0     # BigQuery client library
+google-cloud-storage>=2.0.0      # Cloud Storage for form deployment
+google-api-core>=2.11.0          # Core Google API functionality
+
+# Authentication & Security
+pyjwt>=2.8.0                     # JWT token generation/validation
+bcrypt>=4.0.0                    # Password hashing
+cryptography>=41.0.0             # Cryptographic utilities
+
+# Configuration & Environment
+python-dotenv>=1.0.0             # Environment variable management
+
+# HTTP & API
+requests>=2.31.0                 # HTTP requests for external APIs
+flask>=3.0.0                     # Web framework (for local testing)
+flask-cors>=4.0.0                # CORS support
+
+# Data Processing
+pandas>=2.0.0                    # Data manipulation (for CSV/BigQuery)
+numpy>=1.24.0                    # Numerical operations
+
+# Testing
+pytest>=7.4.0                    # Testing framework
+pytest-cov>=4.1.0                # Code coverage
+pytest-mock>=3.11.0              # Mocking support
+freezegun>=1.2.0                 # Time mocking for tests
+
+# Code Quality
+pylint>=3.0.0                    # Code linting
+black>=23.0.0                    # Code formatting
+mypy>=1.5.0                      # Type checking
+
+# Utilities
+python-dateutil>=2.8.0           # Date/time utilities
+pytz>=2023.3                     # Timezone support
