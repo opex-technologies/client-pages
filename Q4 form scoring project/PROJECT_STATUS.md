@@ -194,8 +194,9 @@
 **Frontend (In Progress):**
 - [x] Form Builder UI implementation ✅
 - [x] Form Builder UI built successfully (dist folder generated) ✅
-- [x] Form Builder UI deployed to GitHub Pages ✅
-- [x] Production URL: https://landoncolvig.github.io/opex-technologies/ ✅
+- [x] Form Builder UI deployed to Opex Technologies GitHub Pages ✅
+- [x] Production URL: https://opex-technologies.github.io/ ✅
+- [x] Organization repository created (opex-technologies/opex-technologies.github.io) ✅
 - [ ] Question browser functional (pending development)
 - [ ] Drag-and-drop question selection working (pending development)
 - [ ] Real-time form preview working (pending development)
@@ -702,7 +703,7 @@ None yet
 - Cloud Functions: https://console.cloud.google.com/functions?project=opex-data-lake-k23k4y98m
 
 **Production URLs:**
-- Form Builder UI: https://landoncolvig.github.io/opex-technologies/ ✅ LIVE
+- Form Builder UI: https://opex-technologies.github.io/ ✅ LIVE
 - Form Builder API: https://us-central1-opex-data-lake-k23k4y98m.cloudfunctions.net/form-builder-api ✅ LIVE
 - Response Scorer API: https://us-central1-opex-data-lake-k23k4y98m.cloudfunctions.net/response-scorer-api ✅ LIVE
 - Auth API: https://us-central1-opex-data-lake-k23k4y98m.cloudfunctions.net/auth-api ✅ LIVE
