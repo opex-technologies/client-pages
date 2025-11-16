@@ -191,11 +191,14 @@
 - [x] Documentation index (INDEX.md) ✅
 - [x] Deployment example script created ✅
 
-**Frontend (Pending):**
-- [ ] Form Builder UI implementation
-- [ ] Question browser functional
-- [ ] Drag-and-drop question selection working
-- [ ] Real-time form preview working
+**Frontend (In Progress):**
+- [x] Form Builder UI implementation ✅
+- [x] Form Builder UI built successfully (dist folder generated) ✅
+- [x] Form Builder UI deployed to GitHub Pages ✅
+- [x] Production URL: https://landoncolvig.github.io/opex-technologies/ ✅
+- [ ] Question browser functional (pending development)
+- [ ] Drag-and-drop question selection working (pending development)
+- [ ] Real-time form preview working (pending development)
 - [ ] GitHub token configured in production
 
 **Recent Progress (Nov 5-6):**
@@ -698,9 +701,12 @@ None yet
 - BigQuery Console: https://console.cloud.google.com/bigquery?project=opex-data-lake-k23k4y98m
 - Cloud Functions: https://console.cloud.google.com/functions?project=opex-data-lake-k23k4y98m
 
-**Production URLs** (After Deployment):
-- Form Builder: TBD
-- Response Scorer: TBD
+**Production URLs:**
+- Form Builder UI: https://landoncolvig.github.io/opex-technologies/ ✅ LIVE
+- Form Builder API: https://us-central1-opex-data-lake-k23k4y98m.cloudfunctions.net/form-builder-api ✅ LIVE
+- Response Scorer API: https://us-central1-opex-data-lake-k23k4y98m.cloudfunctions.net/response-scorer-api ✅ LIVE
+- Auth API: https://us-central1-opex-data-lake-k23k4y98m.cloudfunctions.net/auth-api ✅ LIVE
+- Response Scorer UI: TBD
 - Auth UI: TBD
 - API Gateway: TBD
 
@@ -797,6 +803,7 @@ On Track: YES ✅
 | Nov 5, 2025 | Updated progress (21% Phase 1 complete) | BigQuery schemas deployed | Landon Colvig |
 | Nov 5, 2025 | Updated progress (28% Phase 1 complete) | Question DB migrated, backend infrastructure complete | Landon Colvig |
 | Nov 5, 2025 | Updated progress (36% Phase 1 complete) | Authentication API complete with JWT tokens | Landon Colvig |
+| Nov 16, 2025 | Form Builder UI deployed to GitHub Pages | Frontend build completed and deployed successfully | Landon Colvig |
 
 ---
 
@@ -865,9 +872,9 @@ On Track: YES ✅
 
 ---
 
-**Document Version:** 1.6
-**Last Updated:** November 5, 2025, 8:20 PM PST
-**Next Update:** November 8, 2025 (Weekly Progress Update)
+**Document Version:** 1.7
+**Last Updated:** November 16, 2025, 2:07 PM PST
+**Next Update:** November 18, 2025 (Weekly Progress Update)
 **Updated By:** Landon Colvig / Claude Code
 
 ---
