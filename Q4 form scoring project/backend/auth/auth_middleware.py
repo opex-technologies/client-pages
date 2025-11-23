@@ -35,7 +35,7 @@ except ImportError:
     from response_helpers_standalone import unauthorized_response, forbidden_response
 
 from jwt_utils import verify_token
-from permissions_utils import check_permission
+from permissions_firestore import check_permission
 
 logger = get_logger('auth.middleware')
 

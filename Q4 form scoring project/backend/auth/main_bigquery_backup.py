@@ -39,6 +39,7 @@ try:
         conflict_response,
         cors_preflight_response
     )
+    from common.bigquery_client import get_bigquery_client, execute_query, insert_rows
 except ImportError:
     # Fallback for Cloud Functions deployment
     from config_standalone import config
@@ -57,18 +58,7 @@ except ImportError:
         conflict_response,
         cors_preflight_response
     )
-
-# Import Firestore client functions
-from firestore_client import (
-    get_user_by_email,
-    get_user_by_id,
-    create_user,
-    update_user_login,
-    create_session,
-    get_session,
-    revoke_session,
-    revoke_all_user_sessions_firestore
-)
+    from bigquery_client_standalone import get_bigquery_client, execute_query, insert_rows
 
 from password_utils import hash_password, verify_password
 from jwt_utils import (
@@ -190,9 +180,21 @@ def handle_register(request) -> tuple:
             return bad_request_response(error)
 
         # Check if email already exists
-        existing_user = get_user_by_email(email)
+        table_ref = config.get_dataset_table(config.AUTH_DATASET, 'users')
+        check_query = f"""
+        SELECT user_id
+        FROM `{table_ref}`
+        WHERE email = @email
+        LIMIT 1
+        """
 
-        if existing_user:
+        from google.cloud import bigquery
+        existing_users = execute_query(
+            check_query,
+            params=[bigquery.ScalarQueryParameter("email", "STRING", email)]
+        )
+
+        if existing_users:
             log_authentication_event(logger, 'registration_failed_duplicate', email=email)
             return conflict_response(
                 message='Email already registered',
@@ -202,24 +204,40 @@ def handle_register(request) -> tuple:
         # Hash password
         password_hash = hash_password(password)
 
-        # Create user record in Firestore
+        # Create user record
         user_id = str(uuid.uuid4())
-        user_data = create_user(email, password_hash, full_name, user_id)
+        now = datetime.utcnow()
+
+        user_data = {
+            'user_id': user_id,
+            'email': email,
+            'password_hash': password_hash,
+            'full_name': full_name,
+            'mfa_secret': None,
+            'failed_login_attempts': 0,
+            'account_locked_until': None,
+            'created_at': now.isoformat(),
+            'last_login': None,
+            'password_changed_at': now.isoformat(),
+            'status': 'active',
+            'created_by': user_id,  # Self-created
+            'updated_at': None,
+            'updated_by': None
+        }
+
+        # Insert user into database
+        insert_rows(table_ref, [user_data])
 
         # Log successful registration
         log_authentication_event(logger, 'user_registered', user_id=user_id, email=email)
 
         # Return user data (without password hash)
-        created_at = user_data['created_at']
-        if isinstance(created_at, datetime):
-            created_at = created_at.isoformat()
-
         return success_response(
             data={
                 'user_id': user_id,
                 'email': email,
                 'full_name': full_name,
-                'created_at': created_at
+                'created_at': user_data['created_at']
             },
             message='User registered successfully',
             status_code=201
@@ -276,15 +294,36 @@ def handle_login(request) -> tuple:
         email = sanitize_input(data['email'].lower().strip(), max_length=255)
         password = data['password']
 
-        # Get user from Firestore
-        user = get_user_by_email(email)
+        # Get user from database
+        table_ref = config.get_dataset_table(config.AUTH_DATASET, 'users')
+        query = f"""
+        SELECT
+            user_id,
+            email,
+            password_hash,
+            full_name,
+            status,
+            failed_login_attempts,
+            account_locked_until
+        FROM `{table_ref}`
+        WHERE email = @email
+        LIMIT 1
+        """
 
-        if not user:
+        from google.cloud import bigquery
+        users = execute_query(
+            query,
+            params=[bigquery.ScalarQueryParameter("email", "STRING", email)]
+        )
+
+        if not users:
             log_authentication_event(logger, 'login_failed_user_not_found', email=email)
             return unauthorized_response('Invalid email or password')
 
+        user = users[0]
+
         # Check account status
-        if user.get('is_active', True) == False:
+        if user['status'] != 'active':
             log_authentication_event(logger, 'login_failed_inactive', user_id=user['user_id'])
             return unauthorized_response('Account is inactive')
 
@@ -302,10 +341,33 @@ def handle_login(request) -> tuple:
         is_valid = verify_password(password, user['password_hash'])
 
         if not is_valid:
-            # Update failed login attempts in Firestore
-            update_user_login(email, success=False)
+            # Increment failed login attempts
+            failed_attempts = (user.get('failed_login_attempts') or 0) + 1
 
-            failed_attempts = (user.get('failed_login_attempts', 0) or 0) + 1
+            # Lock account if too many failed attempts
+            lock_until = None
+            if failed_attempts >= config.MAX_LOGIN_ATTEMPTS:
+                lock_until = (datetime.utcnow() + timedelta(minutes=config.ACCOUNT_LOCKOUT_MINUTES)).isoformat()
+
+            # Update failed attempts
+            update_query = f"""
+            UPDATE `{table_ref}`
+            SET
+                failed_login_attempts = @failed_attempts,
+                account_locked_until = @lock_until
+            WHERE user_id = @user_id
+            """
+
+            client = get_bigquery_client()
+            job_config = bigquery.QueryJobConfig(
+                query_parameters=[
+                    bigquery.ScalarQueryParameter("failed_attempts", "INT64", failed_attempts),
+                    bigquery.ScalarQueryParameter("lock_until", "TIMESTAMP", lock_until),
+                    bigquery.ScalarQueryParameter("user_id", "STRING", user['user_id'])
+                ]
+            )
+            client.query(update_query, job_config=job_config).result()
+
             log_authentication_event(
                 logger,
                 'login_failed_invalid_password',
@@ -315,14 +377,25 @@ def handle_login(request) -> tuple:
 
             return unauthorized_response('Invalid email or password')
 
-        # Update successful login in Firestore
-        update_user_login(email, success=True)
+        # Reset failed login attempts on successful login
+        now = datetime.utcnow()
+        update_query = f"""
+        UPDATE `{table_ref}`
+        SET
+            failed_login_attempts = 0,
+            account_locked_until = NULL,
+            last_login = @last_login
+        WHERE user_id = @user_id
+        """
 
-        # Get user's highest permission level from Firestore
-        from permissions_firestore import is_super_admin, get_highest_permission_level
-
-        highest_permission = get_highest_permission_level(user['user_id'])
-        is_admin = is_super_admin(user['user_id'])
+        client = get_bigquery_client()
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("last_login", "TIMESTAMP", now.isoformat()),
+                bigquery.ScalarQueryParameter("user_id", "STRING", user['user_id'])
+            ]
+        )
+        client.query(update_query, job_config=job_config).result()
 
         # Generate tokens
         access_token = generate_access_token(user['user_id'], user['email'])
@@ -330,7 +403,7 @@ def handle_login(request) -> tuple:
 
         log_authentication_event(logger, 'login_successful', user_id=user['user_id'], session_id=session_id)
 
-        # Return tokens and user info with permissions
+        # Return tokens and user info
         return success_response(
             data={
                 'access_token': access_token,
@@ -340,9 +413,7 @@ def handle_login(request) -> tuple:
                 'user': {
                     'user_id': user['user_id'],
                     'email': user['email'],
-                    'full_name': user['full_name'],
-                    'permissions': highest_permission,
-                    'is_super_admin': is_admin
+                    'full_name': user['full_name']
                 }
             },
             message='Login successful'

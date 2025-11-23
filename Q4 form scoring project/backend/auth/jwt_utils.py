@@ -18,11 +18,9 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 try:
     from common.config import config
     from common.logger import get_logger
-    from common.bigquery_client import get_bigquery_client, execute_query, insert_rows
 except ImportError:
     from config_standalone import config
     from logger_standalone import get_logger
-    from bigquery_client_standalone import get_bigquery_client, execute_query, insert_rows
 
 logger = get_logger('auth.jwt')
 
@@ -169,9 +167,9 @@ def generate_refresh_token(user_id: str, email: str) -> Tuple[str, str]:
             'ip_address': None   # Can be populated from request
         }
 
-        # Insert session into BigQuery
-        table_ref = config.get_dataset_table(config.AUTH_DATASET, 'sessions')
-        insert_rows(table_ref, [session_data])
+        # Insert session into Firestore
+        from firestore_client import create_session
+        create_session(session_id, user_id, token_hash, expiration)
 
         logger.info(
             'Refresh token generated and session stored',
@@ -323,39 +321,10 @@ def revoke_token(session_id: str, revoked_by: Optional[str] = None) -> bool:
             return success_response({'message': 'Logged out successfully'})
     """
     try:
-        client = get_bigquery_client()
-        table_ref = config.get_dataset_table(config.AUTH_DATASET, 'sessions')
-
-        # Update session to mark as inactive
-        query = f"""
-        UPDATE `{table_ref}`
-        SET
-            is_active = FALSE,
-            revoked_at = CURRENT_TIMESTAMP(),
-            revoked_by = @revoked_by
-        WHERE session_id = @session_id
-          AND is_active = TRUE
-        """
-
-        from google.cloud import bigquery
-        job_config = bigquery.QueryJobConfig(
-            query_parameters=[
-                bigquery.ScalarQueryParameter("session_id", "STRING", session_id),
-                bigquery.ScalarQueryParameter("revoked_by", "STRING", revoked_by)
-            ]
-        )
-
-        query_job = client.query(query, job_config=job_config)
-        query_job.result()
-
-        rows_affected = query_job.num_dml_affected_rows
-
-        if rows_affected > 0:
-            logger.info('Session revoked', session_id=session_id, revoked_by=revoked_by)
-            return True
-        else:
-            logger.warning('Session not found or already revoked', session_id=session_id)
-            return False
+        from firestore_client import revoke_session
+        revoke_session(session_id)
+        logger.info('Session revoked', session_id=session_id, revoked_by=revoked_by)
+        return True
 
     except Exception as e:
         logger.error('Failed to revoke session', session_id=session_id, error=str(e))
@@ -378,30 +347,8 @@ def revoke_all_user_sessions(user_id: str) -> int:
         logger.info(f'Revoked {count} sessions for security')
     """
     try:
-        client = get_bigquery_client()
-        table_ref = config.get_dataset_table(config.AUTH_DATASET, 'sessions')
-
-        query = f"""
-        UPDATE `{table_ref}`
-        SET
-            is_active = FALSE,
-            revoked_at = CURRENT_TIMESTAMP(),
-            revoked_by = @user_id
-        WHERE user_id = @user_id
-          AND is_active = TRUE
-        """
-
-        from google.cloud import bigquery
-        job_config = bigquery.QueryJobConfig(
-            query_parameters=[
-                bigquery.ScalarQueryParameter("user_id", "STRING", user_id)
-            ]
-        )
-
-        query_job = client.query(query, job_config=job_config)
-        query_job.result()
-
-        rows_affected = query_job.num_dml_affected_rows
+        from firestore_client import revoke_all_user_sessions_firestore
+        rows_affected = revoke_all_user_sessions_firestore(user_id)
 
         logger.info('All user sessions revoked', user_id=user_id, count=rows_affected)
 

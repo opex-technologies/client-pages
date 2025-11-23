@@ -18,7 +18,7 @@ import sys
 import os
 
 # Add parent directory to path for imports
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 try:
     from common.config import config
@@ -44,13 +44,17 @@ except ImportError:
     )
 
 from jwt_utils import verify_token
+from permissions_firestore import (
+    check_permission,
+    get_user_permissions,
+    is_super_admin
+)
+# Note: grant_permission, revoke_permission, list_all_permissions still use BigQuery
+# These are admin-only functions and can be migrated later if needed
 from permissions_utils import (
     grant_permission,
     revoke_permission,
-    check_permission,
-    get_user_permissions,
     get_highest_permission_level,
-    is_super_admin,
     list_all_permissions
 )
 
