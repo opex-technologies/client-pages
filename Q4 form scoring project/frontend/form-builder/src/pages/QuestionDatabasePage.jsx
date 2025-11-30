@@ -111,27 +111,45 @@ const QuestionDatabasePage = () => {
   };
 
   const applyFilters = () => {
+    console.log('=== APPLY FILTERS DEBUG ===');
+    console.log('Total questions:', questions.length);
+    console.log('filterCategory:', filterCategory);
+    console.log('filterType:', filterType);
+    console.log('filterSubtype:', filterSubtype);
+    console.log('searchTerm:', searchTerm);
+
     let filtered = [...questions];
+    console.log('Initial filtered count:', filtered.length);
 
     if (searchTerm) {
       filtered = filtered.filter(q =>
         q.question_text.toLowerCase().includes(searchTerm.toLowerCase()) ||
         q.category.toLowerCase().includes(searchTerm.toLowerCase())
       );
+      console.log('After search filter:', filtered.length);
     }
 
     if (filterCategory !== 'all') {
+      console.log('Filtering by category:', filterCategory);
+      console.log('Sample categories in data:', [...new Set(questions.slice(0, 10).map(q => q.category))]);
       filtered = filtered.filter(q => q.category === filterCategory);
+      console.log('After category filter:', filtered.length);
     }
 
     if (filterType !== 'all') {
+      console.log('Filtering by type:', filterType);
       filtered = filtered.filter(q => q.opportunity_type === filterType);
+      console.log('After type filter:', filtered.length);
     }
 
     if (filterSubtype !== 'all') {
+      console.log('Filtering by subtype:', filterSubtype);
       filtered = filtered.filter(q => q.opportunity_subtype === filterSubtype);
+      console.log('After subtype filter:', filtered.length);
     }
 
+    console.log('Final filtered count:', filtered.length);
+    console.log('=== END DEBUG ===');
     setFilteredQuestions(filtered);
   };
 

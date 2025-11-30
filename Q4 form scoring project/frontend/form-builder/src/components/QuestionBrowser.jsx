@@ -40,13 +40,23 @@ const QuestionBrowser = ({ onAddQuestion, selectedQuestionIds = [], opportunityS
 
   // Fetch questions when filters change (with debounce for search only)
   useEffect(() => {
+    console.log('=== QuestionBrowser FETCH DEBUG ===');
+    console.log('categoriesLoaded:', categoriesLoaded);
+    console.log('opportunitySubtype:', opportunitySubtype);
+    console.log('filterCategory:', filterCategory);
+    console.log('searchTerm:', searchTerm);
+
     // Don't fetch until categories are loaded
-    if (!categoriesLoaded) return;
+    if (!categoriesLoaded) {
+      console.log('Skipping fetch - categories not loaded yet');
+      return;
+    }
 
     // Use AbortController to cancel stale requests
     const abortController = new AbortController();
 
     const fetchQuestions = async () => {
+      console.log('Starting fetch...');
       setIsLoading(true);
       try {
         const params = {
@@ -54,9 +64,11 @@ const QuestionBrowser = ({ onAddQuestion, selectedQuestionIds = [], opportunityS
           page: 1,
         };
 
-        if (opportunitySubtype) {
-          params.opportunity_subtype = opportunitySubtype;
-        }
+        // Don't filter by opportunitySubtype - users should be able to add any question
+        // if (opportunitySubtype) {
+        //   params.opportunity_subtype = opportunitySubtype;
+        // }
+
         if (filterCategory !== 'all') {
           params.category = filterCategory;
         }
@@ -64,29 +76,43 @@ const QuestionBrowser = ({ onAddQuestion, selectedQuestionIds = [], opportunityS
           params.search = searchTerm.trim();
         }
 
+        console.log('API params:', params);
+        console.log('Signal aborted before call?', abortController.signal.aborted);
+
         const response = await formBuilderAPI.getQuestions(params, abortController.signal);
+
+        console.log('API response received');
+        console.log('Signal aborted after call?', abortController.signal.aborted);
+        console.log('Response success:', response.data.success);
+        console.log('Response items count:', response.data.data?.items?.length || 0);
 
         // Only update state if request wasn't aborted
         if (!abortController.signal.aborted) {
           if (response.data.success) {
             const newQuestions = response.data.data.items || [];
+            console.log('Setting questions:', newQuestions.length);
             setQuestions(newQuestions);
             setPage(1);
             setHasMore(newQuestions.length === 20);
           }
+        } else {
+          console.log('NOT updating state - signal was aborted');
         }
       } catch (error) {
+        console.log('Error caught:', error.name, error.code, error.message);
         // Ignore abort errors but still cleanup loading state
         if (error.name === 'AbortError' || error.code === 'ERR_CANCELED' || abortController.signal.aborted) {
+          console.log('Request was aborted - this is normal');
           // Request was aborted - this is normal when filters change quickly
           // Don't show error toast, but let finally block clean up isLoading
         } else {
           // Real error occurred
-          console.error('Failed to fetch questions:', error);
+          console.error('Real error occurred:', error);
           toast.error(getErrorMessage(error));
           setQuestions([]);
         }
       } finally {
+        console.log('Finally block - setting isLoading to false');
         // ALWAYS reset loading state, even if request was aborted
         setIsLoading(false);
       }
@@ -98,6 +124,7 @@ const QuestionBrowser = ({ onAddQuestion, selectedQuestionIds = [], opportunityS
     fetchQuestions();
 
     return () => {
+      console.log('Cleanup running - aborting controller');
       abortController.abort();
     };
   }, [categoriesLoaded, opportunitySubtype, filterCategory, searchTerm]);
@@ -111,9 +138,11 @@ const QuestionBrowser = ({ onAddQuestion, selectedQuestionIds = [], opportunityS
         page: nextPage,
       };
 
-      if (opportunitySubtype) {
-        params.opportunity_subtype = opportunitySubtype;
-      }
+      // Don't filter by opportunitySubtype - users should be able to add any question
+      // if (opportunitySubtype) {
+      //   params.opportunity_subtype = opportunitySubtype;
+      // }
+
       if (filterCategory !== 'all') {
         params.category = filterCategory;
       }

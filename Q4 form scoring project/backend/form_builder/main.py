@@ -265,58 +265,54 @@ def create_template(request: Request, current_user: Dict) -> tuple:
         user_id = current_user['user_id']
         user_email = current_user.get('email', '')
 
-        # Insert template
-        template_row = {
-            "template_id": template_id,
-            "template_name": template_name,
-            "opportunity_type": opportunity_type,
-            "opportunity_subtype": opportunity_subtype,
-            "status": "draft",
-            "description": data.get('description'),
-            "created_by": user_id,
-            "created_by_email": user_email,
-            "created_at": now.isoformat(),
-            "updated_at": None,
-            "updated_by": None,
-            "updated_by_email": None,
-            "deployed_url": None,
-            "deployed_at": None,
-            "version": 1
-        }
+        # Insert template using standard SQL (not streaming) to allow immediate updates
+        description_val = data.get('description') or ''
+        insert_query = f"""
+        INSERT INTO `{TEMPLATES_TABLE}` (
+            template_id, template_name, opportunity_type, opportunity_subtype,
+            status, description, created_by, created_by_email, created_at,
+            updated_at, updated_by, updated_by_email, deployed_url, deployed_at, version
+        ) VALUES (
+            @template_id, @template_name, @opportunity_type, @opportunity_subtype,
+            'draft', @description, @created_by, @created_by_email, @created_at,
+            NULL, NULL, NULL, NULL, NULL, 1
+        )
+        """
+        insert_params = [
+            bigquery.ScalarQueryParameter("template_id", "STRING", template_id),
+            bigquery.ScalarQueryParameter("template_name", "STRING", template_name),
+            bigquery.ScalarQueryParameter("opportunity_type", "STRING", opportunity_type),
+            bigquery.ScalarQueryParameter("opportunity_subtype", "STRING", opportunity_subtype),
+            bigquery.ScalarQueryParameter("description", "STRING", description_val),
+            bigquery.ScalarQueryParameter("created_by", "STRING", user_id),
+            bigquery.ScalarQueryParameter("created_by_email", "STRING", user_email),
+            bigquery.ScalarQueryParameter("created_at", "TIMESTAMP", now),
+        ]
+        job_config = bigquery.QueryJobConfig(query_parameters=insert_params)
+        bq_client.query(insert_query, job_config=job_config).result()
 
-        errors = bq_client.insert_rows_json(TEMPLATES_TABLE, [template_row])
-        if errors:
-            return error_response(
-                f"Failed to create template: {errors}",
-                "DATABASE_ERROR",
-                status_code=500
-            )
-
-        # Insert template questions
+        # Insert template questions using standard SQL
         if questions:
-            question_rows = []
             for q in questions:
-                question_rows.append({
-                    "template_id": template_id,
-                    "question_id": q['question_id'],
-                    "weight": normalize_weight(q.get('weight')),
-                    "is_required": q.get('is_required', False),
-                    "sort_order": q.get('sort_order', 0),
-                    "added_at": now.isoformat(),
-                    "added_by": user_id
-                })
-
-            errors = bq_client.insert_rows_json(TEMPLATE_QUESTIONS_TABLE, question_rows)
-            if errors:
-                # Rollback template creation would be needed here
-                # For now, log the error
-                print(f"ERROR: Failed to insert template questions: {errors}")
-                return error_response(
-                    "Template created but failed to add questions",
-                    "PARTIAL_ERROR",
-                    {"errors": errors},
-                    status_code=500
+                weight_val = normalize_weight(q.get('weight'))
+                q_insert_query = f"""
+                INSERT INTO `{TEMPLATE_QUESTIONS_TABLE}` (
+                    template_id, question_id, weight, is_required, sort_order, added_at, added_by
+                ) VALUES (
+                    @template_id, @question_id, @weight, @is_required, @sort_order, @added_at, @added_by
                 )
+                """
+                q_params = [
+                    bigquery.ScalarQueryParameter("template_id", "STRING", template_id),
+                    bigquery.ScalarQueryParameter("question_id", "STRING", q['question_id']),
+                    bigquery.ScalarQueryParameter("weight", "FLOAT64", weight_val),
+                    bigquery.ScalarQueryParameter("is_required", "BOOL", q.get('is_required', False)),
+                    bigquery.ScalarQueryParameter("sort_order", "INT64", q.get('sort_order', 0)),
+                    bigquery.ScalarQueryParameter("added_at", "TIMESTAMP", now),
+                    bigquery.ScalarQueryParameter("added_by", "STRING", user_id),
+                ]
+                job_config = bigquery.QueryJobConfig(query_parameters=q_params)
+                bq_client.query(q_insert_query, job_config=job_config).result()
 
         # Return created template
         return success_response(
@@ -605,6 +601,9 @@ def update_template(request: Request, template_id: str, current_user: Dict) -> t
 
     PUT /form-builder/templates/:template_id
     Permission: edit
+
+    Note: Uses MERGE to handle BigQuery streaming buffer limitations.
+    Direct UPDATE fails on rows in the streaming buffer (up to 90 min after insert).
     """
     try:
         # Validate template_id
@@ -616,9 +615,9 @@ def update_template(request: Request, template_id: str, current_user: Dict) -> t
         if not data:
             return error_response("Request body is required", "BAD_REQUEST")
 
-        # Check if template exists and is draft
+        # Check if template exists and get current data
         check_query = f"""
-        SELECT status, version
+        SELECT *
         FROM `{TEMPLATES_TABLE}`
         WHERE template_id = @template_id
           AND status != 'deleted'
@@ -640,8 +639,9 @@ def update_template(request: Request, template_id: str, current_user: Dict) -> t
                 status_code=404
             )
 
-        current_status = check_result[0].status
-        current_version = check_result[0].version
+        current_template = check_result[0]
+        current_status = current_template.status
+        current_version = current_template.version
 
         if current_status != 'draft':
             return error_response(
@@ -651,57 +651,51 @@ def update_template(request: Request, template_id: str, current_user: Dict) -> t
                 status_code=403
             )
 
-        # Build update query
-        update_fields = []
-        update_params = [bigquery.ScalarQueryParameter("template_id", "STRING", template_id)]
-
+        # Validate inputs
         if 'template_name' in data:
             is_valid, error_msg = validate_template_name(data['template_name'])
             if not is_valid:
                 return error_response(error_msg, "BAD_REQUEST")
-            update_fields.append("template_name = @template_name")
-            update_params.append(bigquery.ScalarQueryParameter("template_name", "STRING", data['template_name']))
 
-        if 'description' in data:
-            update_fields.append("description = @description")
-            update_params.append(bigquery.ScalarQueryParameter("description", "STRING", data['description']))
-
-        if 'opportunity_type' in data:
-            update_fields.append("opportunity_type = @opportunity_type")
-            update_params.append(bigquery.ScalarQueryParameter("opportunity_type", "STRING", data['opportunity_type']))
-
-        if 'opportunity_subtype' in data:
-            update_fields.append("opportunity_subtype = @opportunity_subtype")
-            update_params.append(bigquery.ScalarQueryParameter("opportunity_subtype", "STRING", data['opportunity_subtype']))
-
-        # Always update metadata
+        # Prepare updated values
         now = datetime.now(timezone.utc)
         user_id = current_user['user_id']
         user_email = current_user.get('email', '')
         new_version = current_version + 1
 
-        update_fields.extend([
-            "updated_at = @updated_at",
-            "updated_by = @updated_by",
-            "updated_by_email = @updated_by_email",
-            "version = @version"
-        ])
-        update_params.extend([
+        # Use standard UPDATE (since we now use standard SQL INSERT, not streaming)
+        update_query = f"""
+        UPDATE `{TEMPLATES_TABLE}`
+        SET
+            template_name = @template_name,
+            description = @description,
+            opportunity_type = @opportunity_type,
+            opportunity_subtype = @opportunity_subtype,
+            updated_at = @updated_at,
+            updated_by = @updated_by,
+            updated_by_email = @updated_by_email,
+            version = @version
+        WHERE template_id = @template_id
+        """
+
+        description_val = data.get('description', current_template.description) or ''
+        update_params = [
+            bigquery.ScalarQueryParameter("template_id", "STRING", template_id),
+            bigquery.ScalarQueryParameter("template_name", "STRING",
+                data.get('template_name', current_template.template_name)),
+            bigquery.ScalarQueryParameter("description", "STRING", description_val),
+            bigquery.ScalarQueryParameter("opportunity_type", "STRING",
+                data.get('opportunity_type', current_template.opportunity_type)),
+            bigquery.ScalarQueryParameter("opportunity_subtype", "STRING",
+                data.get('opportunity_subtype', current_template.opportunity_subtype)),
             bigquery.ScalarQueryParameter("updated_at", "TIMESTAMP", now),
             bigquery.ScalarQueryParameter("updated_by", "STRING", user_id),
             bigquery.ScalarQueryParameter("updated_by_email", "STRING", user_email),
             bigquery.ScalarQueryParameter("version", "INT64", new_version)
-        ])
+        ]
 
-        if update_fields:
-            update_query = f"""
-            UPDATE `{TEMPLATES_TABLE}`
-            SET {', '.join(update_fields)}
-            WHERE template_id = @template_id
-            """
-
-            job_config = bigquery.QueryJobConfig(query_parameters=update_params)
-            bq_client.query(update_query, job_config=job_config).result()
+        job_config = bigquery.QueryJobConfig(query_parameters=update_params)
+        bq_client.query(update_query, job_config=job_config).result()
 
         # Update questions if provided
         if 'questions' in data:
@@ -723,7 +717,7 @@ def update_template(request: Request, template_id: str, current_user: Dict) -> t
                             "BAD_REQUEST"
                         )
 
-            # Delete existing questions
+            # Delete existing questions using standard DELETE
             delete_query = f"""
             DELETE FROM `{TEMPLATE_QUESTIONS_TABLE}`
             WHERE template_id = @template_id
@@ -732,23 +726,27 @@ def update_template(request: Request, template_id: str, current_user: Dict) -> t
                 query_parameters=[bigquery.ScalarQueryParameter("template_id", "STRING", template_id)]
             )).result()
 
-            # Insert new questions
-            if questions:
-                question_rows = []
-                for q in questions:
-                    question_rows.append({
-                        "template_id": template_id,
-                        "question_id": q['question_id'],
-                        "weight": normalize_weight(q.get('weight')),
-                        "is_required": q.get('is_required', False),
-                        "sort_order": q.get('sort_order', 0),
-                        "added_at": now.isoformat(),
-                        "added_by": user_id
-                    })
-
-                errors = bq_client.insert_rows_json(TEMPLATE_QUESTIONS_TABLE, question_rows)
-                if errors:
-                    print(f"ERROR: Failed to insert updated questions: {errors}")
+            # Insert new questions using standard SQL INSERT
+            for q in questions:
+                weight_val = normalize_weight(q.get('weight'))
+                q_insert_query = f"""
+                INSERT INTO `{TEMPLATE_QUESTIONS_TABLE}` (
+                    template_id, question_id, weight, is_required, sort_order, added_at, added_by
+                ) VALUES (
+                    @template_id, @question_id, @weight, @is_required, @sort_order, @added_at, @added_by
+                )
+                """
+                q_params = [
+                    bigquery.ScalarQueryParameter("template_id", "STRING", template_id),
+                    bigquery.ScalarQueryParameter("question_id", "STRING", q['question_id']),
+                    bigquery.ScalarQueryParameter("weight", "FLOAT64", weight_val),
+                    bigquery.ScalarQueryParameter("is_required", "BOOL", q.get('is_required', False)),
+                    bigquery.ScalarQueryParameter("sort_order", "INT64", q.get('sort_order', 0)),
+                    bigquery.ScalarQueryParameter("added_at", "TIMESTAMP", now),
+                    bigquery.ScalarQueryParameter("added_by", "STRING", user_id),
+                ]
+                job_config = bigquery.QueryJobConfig(query_parameters=q_params)
+                bq_client.query(q_insert_query, job_config=job_config).result()
 
         return success_response(
             data={
