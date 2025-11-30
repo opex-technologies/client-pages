@@ -79,19 +79,19 @@ const QuestionBrowser = ({ onAddQuestion, selectedQuestionIds = [], opportunityS
             }
           }
         } catch (error) {
-          // Ignore abort errors
-          if (error.name === 'AbortError' || abortController.signal.aborted) {
-            return;
-          }
-          console.error('Failed to fetch questions:', error);
-          toast.error(getErrorMessage(error));
-          if (!abortController.signal.aborted) {
+          // Ignore abort errors but still cleanup loading state
+          if (error.name === 'AbortError' || error.code === 'ERR_CANCELED' || abortController.signal.aborted) {
+            // Request was aborted - this is normal when filters change quickly
+            // Don't show error toast, but let finally block clean up isLoading
+          } else {
+            // Real error occurred
+            console.error('Failed to fetch questions:', error);
+            toast.error(getErrorMessage(error));
             setQuestions([]);
           }
         } finally {
-          if (!abortController.signal.aborted) {
-            setIsLoading(false);
-          }
+          // ALWAYS reset loading state, even if request was aborted
+          setIsLoading(false);
         }
       };
 
