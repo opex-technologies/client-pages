@@ -127,7 +127,7 @@ const QuestionBrowser = ({ onAddQuestion, selectedQuestionIds = [], opportunityS
       console.log('Cleanup running - aborting controller');
       abortController.abort();
     };
-  }, [categoriesLoaded, opportunitySubtype, filterCategory, searchTerm]);
+  }, [categoriesLoaded, filterCategory, searchTerm]);
 
   const handleLoadMore = async () => {
     setIsLoading(true);

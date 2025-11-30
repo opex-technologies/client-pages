@@ -64,7 +64,7 @@ const QuestionDatabasePage = () => {
     setIsLoading(true);
     try {
       const params = {
-        page_size: 100,
+        page_size: 200, // Increased to load more questions
         page: loadMore ? page + 1 : 1,
       };
 
@@ -72,16 +72,21 @@ const QuestionDatabasePage = () => {
 
       if (response.data.success) {
         const newQuestions = response.data.data.items || [];
+        const pagination = response.data.data.pagination || {};
 
         if (loadMore) {
-          setQuestions([...questions, ...newQuestions]);
+          const allQuestions = [...questions, ...newQuestions];
+          setQuestions(allQuestions);
           setPage(page + 1);
+          // Recalculate stats with all loaded questions
+          calculateStats(allQuestions, pagination.total_count);
         } else {
           setQuestions(newQuestions);
-          calculateStats(newQuestions);
+          // Use total_count from pagination for accurate stats
+          calculateStats(newQuestions, pagination.total_count);
         }
 
-        setHasMore(newQuestions.length === 100);
+        setHasMore(pagination.has_next || false);
       }
     } catch (error) {
       console.error('Failed to fetch questions:', error);
@@ -91,7 +96,7 @@ const QuestionDatabasePage = () => {
     }
   };
 
-  const calculateStats = (questionList) => {
+  const calculateStats = (questionList, totalCount = null) => {
     const byCategory = {};
     const byType = {};
     const byInputType = {};
@@ -103,7 +108,7 @@ const QuestionDatabasePage = () => {
     });
 
     setStats({
-      total: questionList.length,
+      total: totalCount || questionList.length, // Use API total if available
       byCategory,
       byType,
       byInputType,
