@@ -142,8 +142,12 @@ export const formBuilderAPI = {
    * @param {number} params.page_size - Items per page
    * @returns {Promise} List of questions
    */
-  getQuestions: (params = {}) => {
-    return apiClient.get('/form-builder/questions', { params });
+  getQuestions: (params = {}, signal = null) => {
+    const config = { params };
+    if (signal) {
+      config.signal = signal;
+    }
+    return apiClient.get('/form-builder/questions', config);
   },
 
   /**

@@ -67,7 +67,7 @@ const QuestionBrowser = ({ onAddQuestion, selectedQuestionIds = [], opportunityS
             params.search = searchTerm.trim();
           }
 
-          const response = await formBuilderAPI.getQuestions(params);
+          const response = await formBuilderAPI.getQuestions(params, abortController.signal);
 
           // Only update state if request wasn't aborted
           if (!abortController.signal.aborted) {

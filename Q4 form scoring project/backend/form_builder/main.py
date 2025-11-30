@@ -541,6 +541,7 @@ def get_template(request: Request, template_id: str, current_user: Dict) -> tupl
         SELECT
           tq.question_id,
           q.question_text,
+          q.category,
           q.input_type,
           q.help_text,
           tq.weight,
@@ -560,6 +561,7 @@ def get_template(request: Request, template_id: str, current_user: Dict) -> tupl
             questions.append({
                 "question_id": row.question_id,
                 "question_text": row.question_text,
+                "category": row.category,
                 "input_type": row.input_type,
                 "weight": row.weight,
                 "is_required": row.is_required,
@@ -1520,6 +1522,7 @@ def generate_preview(request: Request, current_user: Dict) -> tuple:
         SELECT
           tq.question_id,
           q.question_text,
+          q.category,
           q.input_type,
           q.help_text,
           tq.weight,
@@ -1539,6 +1542,7 @@ def generate_preview(request: Request, current_user: Dict) -> tuple:
             questions.append({
                 "question_id": row.question_id,
                 "question_text": row.question_text,
+                "category": row.category,
                 "input_type": row.input_type,
                 "weight": row.weight,
                 "is_required": row.is_required,
@@ -1641,6 +1645,7 @@ def deploy_template(request: Request, template_id: str, current_user: Dict) -> t
         SELECT
           tq.question_id,
           q.question_text,
+          q.category,
           q.input_type,
           q.help_text,
           tq.weight,
@@ -1660,6 +1665,7 @@ def deploy_template(request: Request, template_id: str, current_user: Dict) -> t
             questions.append({
                 "question_id": row.question_id,
                 "question_text": row.question_text,
+                "category": row.category,
                 "input_type": row.input_type,
                 "weight": row.weight,
                 "is_required": row.is_required,
