@@ -21,6 +21,17 @@ const FormPreview = ({ templateId, templateName, questions, onClose }) => {
     }
   }, [templateId, questions]);
 
+  // Add Escape key handler
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [onClose]);
+
   const fetchPreview = async () => {
     setIsLoading(true);
     try {
@@ -138,9 +149,9 @@ const FormPreview = ({ templateId, templateName, questions, onClose }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-lg shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col">
+      <div className="bg-white rounded-lg shadow-2xl w-full max-w-6xl h-[85vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 flex-shrink-0">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">Form Preview</h2>
             <p className="text-sm text-gray-600 mt-1">{templateName}</p>
@@ -157,14 +168,15 @@ const FormPreview = ({ templateId, templateName, questions, onClose }) => {
             <button
               onClick={onClose}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              aria-label="Close preview"
             >
               <X size={24} />
             </button>
           </div>
         </div>
 
-        {/* Preview Content */}
-        <div className="flex-1 overflow-hidden">
+        {/* Preview Content - Takes remaining space */}
+        <div className="flex-1 overflow-hidden min-h-0">
           {isLoading ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
@@ -183,7 +195,7 @@ const FormPreview = ({ templateId, templateName, questions, onClose }) => {
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-gray-200 bg-gray-50 text-center text-sm text-gray-600">
+        <div className="p-3 border-t border-gray-200 bg-gray-50 text-center text-sm text-gray-600 flex-shrink-0">
           <p>This is a preview. Save and deploy your template to create the live form.</p>
         </div>
       </div>

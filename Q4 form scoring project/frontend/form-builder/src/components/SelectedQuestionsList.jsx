@@ -58,7 +58,7 @@ const SelectedQuestionsList = ({ questions, onRemove, onUpdate, onReorder }) => 
         onDragEnd={handleDragEnd}
         className={`p-4 rounded-lg border-2 transition-all ${
           draggedIndex === index
-            ? 'border-opex-cyan bg-cyan-50 opacity-50'
+            ? 'border-opex-cyan bg-cyan-50 shadow-lg scale-[1.02]'
             : 'border-gray-200 bg-white hover:border-gray-300'
         }`}
       >
@@ -99,6 +99,7 @@ const SelectedQuestionsList = ({ questions, onRemove, onUpdate, onReorder }) => 
                       onClick={() => setEditingId(question.question_id)}
                       className="p-1 hover:bg-gray-100 rounded transition-colors"
                       title="Edit question settings"
+                      aria-label="Edit question settings"
                     >
                       <Edit2 size={16} className="text-gray-600" />
                     </button>
@@ -106,6 +107,7 @@ const SelectedQuestionsList = ({ questions, onRemove, onUpdate, onReorder }) => 
                       onClick={() => onRemove(question.question_id)}
                       className="p-1 hover:bg-red-50 rounded transition-colors"
                       title="Remove question"
+                      aria-label="Remove question"
                     >
                       <X size={16} className="text-red-600" />
                     </button>

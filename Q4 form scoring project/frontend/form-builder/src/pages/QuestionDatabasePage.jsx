@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { Search, Filter, Database, TrendingUp, Download, Info, Plus, Edit, Trash2, X, Save } from 'lucide-react';
 import { formBuilderAPI, getErrorMessage } from '../services/formBuilderApi';
 import toast from 'react-hot-toast';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 const QuestionDatabasePage = () => {
   const [questions, setQuestions] = useState([]);
@@ -25,6 +26,7 @@ const QuestionDatabasePage = () => {
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
 
   // Statistics
   const [stats, setStats] = useState({
@@ -41,6 +43,22 @@ const QuestionDatabasePage = () => {
   useEffect(() => {
     applyFilters();
   }, [questions, searchTerm, filterCategory, filterType, filterSubtype]);
+
+  // Add Escape key handlers for modals
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        if (isEditorOpen) {
+          setIsEditorOpen(false);
+          setEditingQuestion(null);
+        } else if (selectedQuestion) {
+          setSelectedQuestion(null);
+        }
+      }
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isEditorOpen, selectedQuestion]);
 
   const fetchQuestions = async (loadMore = false) => {
     setIsLoading(true);
@@ -162,19 +180,23 @@ const QuestionDatabasePage = () => {
   };
 
   const handleDeleteQuestion = async (questionId) => {
-    if (!confirm('Are you sure you want to delete this question? This action cannot be undone.')) {
-      return;
-    }
-
-    try {
-      await formBuilderAPI.deleteQuestion(questionId);
-      toast.success('Question deleted successfully (may take up to 90 minutes to take effect)');
-      setSelectedQuestion(null);
-      setTimeout(() => fetchQuestions(), 1000);
-    } catch (error) {
-      console.error('Failed to delete question:', error);
-      toast.error(getErrorMessage(error));
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Question',
+      message: 'Are you sure you want to delete this question? This action cannot be undone.',
+      onConfirm: async () => {
+        setConfirmDialog({ isOpen: false, title: '', message: '', onConfirm: null });
+        try {
+          await formBuilderAPI.deleteQuestion(questionId);
+          toast.success('Question deleted successfully (may take up to 90 minutes to take effect)');
+          setSelectedQuestion(null);
+          setTimeout(() => fetchQuestions(), 1000);
+        } catch (error) {
+          console.error('Failed to delete question:', error);
+          toast.error(getErrorMessage(error));
+        }
+      }
+    });
   };
 
   const handleExportCSV = () => {
@@ -299,6 +321,7 @@ const QuestionDatabasePage = () => {
                   setEditingQuestion(null);
                 }}
                 className="text-gray-400 hover:text-gray-600"
+                aria-label="Close editor"
               >
                 <X size={24} />
               </button>
@@ -655,6 +678,7 @@ const QuestionDatabasePage = () => {
                 <button
                   onClick={() => setSelectedQuestion(null)}
                   className="text-gray-400 hover:text-gray-600"
+                  aria-label="Close question details"
                 >
                   <X size={24} />
                 </button>
@@ -742,6 +766,18 @@ const QuestionDatabasePage = () => {
 
       {/* Editor Modal */}
       {isEditorOpen && <QuestionEditorModal />}
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog({ isOpen: false, title: '', message: '', onConfirm: null })}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+      />
     </div>
   );
 };

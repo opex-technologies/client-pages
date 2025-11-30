@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { Search, Filter, Download, Eye, Trash2, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { responseScorerAPI, getErrorMessage } from '../services/responseScorerApi';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 const ResponseListPage = () => {
   const navigate = useNavigate();
@@ -28,6 +29,7 @@ const ResponseListPage = () => {
   });
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
 
   // Load responses
   const loadResponses = async (page = 1) => {
@@ -92,17 +94,21 @@ const ResponseListPage = () => {
   };
 
   const handleDeleteResponse = async (responseId) => {
-    if (!window.confirm('Are you sure you want to delete this response?')) {
-      return;
-    }
-
-    try {
-      await responseScorerAPI.deleteResponse(responseId);
-      toast.success('Response deleted successfully');
-      loadResponses(pagination.page);
-    } catch (error) {
-      toast.error(getErrorMessage(error));
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Response',
+      message: 'Are you sure you want to delete this response? This action cannot be undone.',
+      onConfirm: async () => {
+        setConfirmDialog({ isOpen: false, title: '', message: '', onConfirm: null });
+        try {
+          await responseScorerAPI.deleteResponse(responseId);
+          toast.success('Response deleted successfully');
+          loadResponses(pagination.page);
+        } catch (error) {
+          toast.error(getErrorMessage(error));
+        }
+      }
+    });
   };
 
   const handleExport = async () => {
@@ -406,6 +412,18 @@ const ResponseListPage = () => {
           </div>
         </div>
       )}
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog({ isOpen: false, title: '', message: '', onConfirm: null })}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+      />
     </div>
   );
 };

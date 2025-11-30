@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Filter } from 'lucide-react';
 import { formBuilderAPI } from '../services/formBuilderApi';
 import toast from 'react-hot-toast';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 const TemplateListPage = () => {
   const navigate = useNavigate();
@@ -16,6 +17,7 @@ const TemplateListPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterType, setFilterType] = useState('all');
+  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
 
   useEffect(() => {
     fetchTemplates();
@@ -48,18 +50,22 @@ const TemplateListPage = () => {
   );
 
   const handleDeleteTemplate = async (templateId) => {
-    if (!window.confirm('Are you sure you want to delete this template?')) {
-      return;
-    }
-
-    try {
-      await formBuilderAPI.deleteTemplate(templateId);
-      toast.success('Template deleted successfully');
-      fetchTemplates();
-    } catch (error) {
-      console.error('Failed to delete template:', error);
-      toast.error(error.response?.data?.error?.message || 'Failed to delete template');
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Template',
+      message: 'Are you sure you want to delete this template? This action cannot be undone.',
+      onConfirm: async () => {
+        setConfirmDialog({ isOpen: false, title: '', message: '', onConfirm: null });
+        try {
+          await formBuilderAPI.deleteTemplate(templateId);
+          toast.success('Template deleted successfully');
+          fetchTemplates();
+        } catch (error) {
+          console.error('Failed to delete template:', error);
+          toast.error(error.response?.data?.error?.message || 'Failed to delete template');
+        }
+      }
+    });
   };
 
   const TemplateCard = ({ template }) => (
@@ -230,6 +236,18 @@ const TemplateListPage = () => {
           </button>
         </div>
       )}
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog({ isOpen: false, title: '', message: '', onConfirm: null })}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+      />
     </div>
   );
 };

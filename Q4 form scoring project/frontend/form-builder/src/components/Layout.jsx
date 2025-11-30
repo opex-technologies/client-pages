@@ -76,11 +76,12 @@ const Layout = ({ children }) => {
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
               className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+              aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
             >
               {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
 
-            <div className="flex items-center space-x-3">
+            <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
               <img
                 src={config.logoUrl}
                 alt="Opex Technologies"
@@ -93,7 +94,7 @@ const Layout = ({ children }) => {
                 <h1 className="text-xl font-bold">Form Builder</h1>
                 <p className="text-xs text-opex-cyan">Opex Technologies</p>
               </div>
-            </div>
+            </Link>
           </div>
 
           {/* Right: User Menu */}

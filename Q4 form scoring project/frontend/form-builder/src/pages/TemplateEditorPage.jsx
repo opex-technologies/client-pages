@@ -11,6 +11,7 @@ import toast from 'react-hot-toast';
 import QuestionBrowser from '../components/QuestionBrowser';
 import SelectedQuestionsList from '../components/SelectedQuestionsList';
 import FormPreview from '../components/FormPreview';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 const TemplateEditorPage = () => {
   const { id } = useParams();
@@ -32,6 +33,7 @@ const TemplateEditorPage = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isDeploying, setIsDeploying] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null, variant: 'danger' });
 
   // Load template if editing
   useEffect(() => {
@@ -184,9 +186,16 @@ const TemplateEditorPage = () => {
 
         // Show deployed URL
         setTimeout(() => {
-          if (window.confirm(`Form deployed!\n\nURL: ${deployedUrl}\n\nOpen in new tab?`)) {
-            window.open(deployedUrl, '_blank');
-          }
+          setConfirmDialog({
+            isOpen: true,
+            title: 'Form Deployed Successfully!',
+            message: `Your form has been deployed and is now live.\n\nURL: ${deployedUrl}\n\nWould you like to open it in a new tab?`,
+            variant: 'info',
+            onConfirm: () => {
+              window.open(deployedUrl, '_blank');
+              setConfirmDialog({ isOpen: false, title: '', message: '', onConfirm: null, variant: 'danger' });
+            }
+          });
         }, 500);
       }
     } catch (error) {
@@ -381,6 +390,18 @@ const TemplateEditorPage = () => {
           onClose={() => setShowPreview(false)}
         />
       )}
+
+      {/* Confirm Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog({ isOpen: false, title: '', message: '', onConfirm: null, variant: 'danger' })}
+        confirmText="Open in New Tab"
+        cancelText="Close"
+        variant={confirmDialog.variant}
+      />
     </div>
   );
 };

@@ -4,7 +4,7 @@
  */
 
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { LogIn } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import config from '../config';
@@ -15,6 +15,10 @@ const LoginPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Get the page the user was trying to access before being redirected to login
+  const from = location.state?.from?.pathname || '/';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -23,7 +27,8 @@ const LoginPage = () => {
     const result = await login(email, password);
 
     if (result.success) {
-      navigate('/');
+      // Redirect to the page they were trying to access, or dashboard
+      navigate(from, { replace: true });
     }
 
     setIsLoading(false);

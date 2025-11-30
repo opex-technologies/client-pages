@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Database, Upload, Plus, TrendingUp } from 'lucide-react';
+import { FileText, Database, Upload, Plus, TrendingUp, AlertCircle, RefreshCw } from 'lucide-react';
 import { formBuilderAPI } from '../services/formBuilderApi';
 import toast from 'react-hot-toast';
 
@@ -19,6 +19,7 @@ const DashboardPage = () => {
   });
   const [recentTemplates, setRecentTemplates] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchDashboardData();
@@ -26,6 +27,7 @@ const DashboardPage = () => {
 
   const fetchDashboardData = async () => {
     setIsLoading(true);
+    setError(null);
     try {
       // Fetch templates for stats
       const response = await formBuilderAPI.getTemplates({ page_size: 100 });
@@ -43,9 +45,9 @@ const DashboardPage = () => {
         // Get 5 most recent templates
         setRecentTemplates(templates.slice(0, 5));
       }
-    } catch (error) {
-      console.error('Failed to fetch dashboard data:', error);
-      toast.error('Failed to load dashboard data');
+    } catch (err) {
+      console.error('Failed to fetch dashboard data:', err);
+      setError('Failed to load dashboard data. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -82,6 +84,29 @@ const DashboardPage = () => {
         </button>
       </div>
 
+      {/* Error State */}
+      {error && (
+        <div className="mb-8 bg-red-50 border border-red-200 rounded-lg p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <AlertCircle size={24} className="text-red-600" />
+              <div>
+                <h3 className="text-lg font-semibold text-red-900">Error Loading Dashboard</h3>
+                <p className="text-red-700">{error}</p>
+              </div>
+            </div>
+            <button
+              onClick={fetchDashboardData}
+              className="btn-secondary flex items-center space-x-2 bg-white hover:bg-gray-50"
+              aria-label="Retry loading dashboard"
+            >
+              <RefreshCw size={20} />
+              <span>Retry</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Stats Grid */}
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -91,7 +116,7 @@ const DashboardPage = () => {
             </div>
           ))}
         </div>
-      ) : (
+      ) : !error ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatCard
             title="Total Templates"
@@ -118,7 +143,7 @@ const DashboardPage = () => {
             color="bg-opex-cyan"
           />
         </div>
-      )}
+      ) : null}
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
