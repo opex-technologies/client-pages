@@ -11,6 +11,7 @@ import toast from 'react-hot-toast';
 const QuestionBrowser = ({ onAddQuestion, selectedQuestionIds = [], opportunitySubtype }) => {
   const [questions, setQuestions] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [categoriesLoaded, setCategoriesLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
@@ -30,14 +31,23 @@ const QuestionBrowser = ({ onAddQuestion, selectedQuestionIds = [], opportunityS
         }
       } catch (error) {
         console.error('Failed to load categories:', error);
+      } finally {
+        setCategoriesLoaded(true);
       }
     };
     loadCategories();
   }, []);
 
-  // Fetch questions when filters change (with debounce for search)
+  // Fetch questions when filters change (with debounce for search only)
   useEffect(() => {
-    // Debounce search to avoid too many API calls
+    // Don't fetch until categories are loaded
+    if (!categoriesLoaded) return;
+
+    // Use AbortController to cancel stale requests
+    const abortController = new AbortController();
+
+    // Only debounce search term changes, not filter/subtype changes
+    const debounceDelay = 300;
     const timeoutId = setTimeout(() => {
       const fetchQuestions = async () => {
         setIsLoading(true);
@@ -59,26 +69,40 @@ const QuestionBrowser = ({ onAddQuestion, selectedQuestionIds = [], opportunityS
 
           const response = await formBuilderAPI.getQuestions(params);
 
-          if (response.data.success) {
-            const newQuestions = response.data.data.items || [];
-            setQuestions(newQuestions);
-            setPage(1);
-            setHasMore(newQuestions.length === 20);
+          // Only update state if request wasn't aborted
+          if (!abortController.signal.aborted) {
+            if (response.data.success) {
+              const newQuestions = response.data.data.items || [];
+              setQuestions(newQuestions);
+              setPage(1);
+              setHasMore(newQuestions.length === 20);
+            }
           }
         } catch (error) {
+          // Ignore abort errors
+          if (error.name === 'AbortError' || abortController.signal.aborted) {
+            return;
+          }
           console.error('Failed to fetch questions:', error);
           toast.error(getErrorMessage(error));
-          setQuestions([]);
+          if (!abortController.signal.aborted) {
+            setQuestions([]);
+          }
         } finally {
-          setIsLoading(false);
+          if (!abortController.signal.aborted) {
+            setIsLoading(false);
+          }
         }
       };
 
       fetchQuestions();
-    }, 300); // 300ms debounce
+    }, debounceDelay);
 
-    return () => clearTimeout(timeoutId);
-  }, [opportunitySubtype, filterCategory, searchTerm]);
+    return () => {
+      clearTimeout(timeoutId);
+      abortController.abort();
+    };
+  }, [categoriesLoaded, opportunitySubtype, filterCategory, searchTerm]);
 
   const handleLoadMore = async () => {
     setIsLoading(true);
