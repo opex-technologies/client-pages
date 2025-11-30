@@ -46,60 +46,58 @@ const QuestionBrowser = ({ onAddQuestion, selectedQuestionIds = [], opportunityS
     // Use AbortController to cancel stale requests
     const abortController = new AbortController();
 
-    // Only debounce search term changes, not filter/subtype changes
-    const debounceDelay = 300;
-    const timeoutId = setTimeout(() => {
-      const fetchQuestions = async () => {
-        setIsLoading(true);
-        try {
-          const params = {
-            page_size: 20,
-            page: 1,
-          };
+    const fetchQuestions = async () => {
+      setIsLoading(true);
+      try {
+        const params = {
+          page_size: 20,
+          page: 1,
+        };
 
-          if (opportunitySubtype) {
-            params.opportunity_subtype = opportunitySubtype;
-          }
-          if (filterCategory !== 'all') {
-            params.category = filterCategory;
-          }
-          if (searchTerm.trim()) {
-            params.search = searchTerm.trim();
-          }
-
-          const response = await formBuilderAPI.getQuestions(params, abortController.signal);
-
-          // Only update state if request wasn't aborted
-          if (!abortController.signal.aborted) {
-            if (response.data.success) {
-              const newQuestions = response.data.data.items || [];
-              setQuestions(newQuestions);
-              setPage(1);
-              setHasMore(newQuestions.length === 20);
-            }
-          }
-        } catch (error) {
-          // Ignore abort errors but still cleanup loading state
-          if (error.name === 'AbortError' || error.code === 'ERR_CANCELED' || abortController.signal.aborted) {
-            // Request was aborted - this is normal when filters change quickly
-            // Don't show error toast, but let finally block clean up isLoading
-          } else {
-            // Real error occurred
-            console.error('Failed to fetch questions:', error);
-            toast.error(getErrorMessage(error));
-            setQuestions([]);
-          }
-        } finally {
-          // ALWAYS reset loading state, even if request was aborted
-          setIsLoading(false);
+        if (opportunitySubtype) {
+          params.opportunity_subtype = opportunitySubtype;
         }
-      };
+        if (filterCategory !== 'all') {
+          params.category = filterCategory;
+        }
+        if (searchTerm.trim()) {
+          params.search = searchTerm.trim();
+        }
 
-      fetchQuestions();
-    }, debounceDelay);
+        const response = await formBuilderAPI.getQuestions(params, abortController.signal);
+
+        // Only update state if request wasn't aborted
+        if (!abortController.signal.aborted) {
+          if (response.data.success) {
+            const newQuestions = response.data.data.items || [];
+            setQuestions(newQuestions);
+            setPage(1);
+            setHasMore(newQuestions.length === 20);
+          }
+        }
+      } catch (error) {
+        // Ignore abort errors but still cleanup loading state
+        if (error.name === 'AbortError' || error.code === 'ERR_CANCELED' || abortController.signal.aborted) {
+          // Request was aborted - this is normal when filters change quickly
+          // Don't show error toast, but let finally block clean up isLoading
+        } else {
+          // Real error occurred
+          console.error('Failed to fetch questions:', error);
+          toast.error(getErrorMessage(error));
+          setQuestions([]);
+        }
+      } finally {
+        // ALWAYS reset loading state, even if request was aborted
+        setIsLoading(false);
+      }
+    };
+
+    // No debounce delay - fetch immediately
+    // This fixes the bug where category changes resulted in 0 questions
+    // because the timeout was being cleared by cleanup before it could execute
+    fetchQuestions();
 
     return () => {
-      clearTimeout(timeoutId);
       abortController.abort();
     };
   }, [categoriesLoaded, opportunitySubtype, filterCategory, searchTerm]);
