@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ template_name }} - Opex Technologies</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f3f4f6;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: #e5e7eb;
+            color: #1f2937;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .logo {
+            max-width: 200px;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .progress-bar {
+            background: rgba(255, 255, 255, 0.2);
+            height: 8px;
+            margin-top: 20px;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background: white;
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .form-content {
+            padding: 40px;
+        }
+
+        .question-block {
+            margin-bottom: 35px;
+            padding-bottom: 35px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .question-block:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .question-label {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .required {
+            color: #ef4444;
+            margin-left: 4px;
+        }
+
+        .help-text {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 12px;
+        }
+
+        .question-number {
+            display: inline-block;
+            background: #1e3a5f;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 28px;
+            font-size: 14px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 16px;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: #1e3a5f;
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .radio-group,
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .radio-option,
+        .checkbox-option {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .radio-option:hover,
+        .checkbox-option:hover {
+            border-color: #1e3a5f;
+            background: #f9fafb;
+        }
+
+        .radio-option input[type="radio"],
+        .checkbox-option input[type="checkbox"] {
+            margin-right: 12px;
+            cursor: pointer;
+            width: 20px;
+            height: 20px;
+            accent-color: #1e3a5f;
+        }
+
+        .error-message {
+            color: #ef4444;
+            font-size: 14px;
+            margin-top: 8px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .input-error {
+            border-color: #ef4444 !important;
+        }
+
+        .submit-section {
+            margin-top: 40px;
+            padding-top: 40px;
+            border-top: 2px solid #e5e7eb;
+        }
+
+        .submit-button {
+            width: 100%;
+            padding: 16px;
+            background: #1e3a5f;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .submit-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(30, 58, 95, 0.4);
+        }
+
+        .submit-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .success-message {
+            display: none;
+            background: #10b981;
+            color: white;
+            padding: 40px;
+            border-radius: 8px;
+            text-align: center;
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .success-message.show {
+            display: block !important;
+        }
+
+        .footer {
+            background: #f9fafb;
+            padding: 20px;
+            text-align: center;
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                border-radius: 0;
+            }
+
+            .header {
+                padding: 30px 20px;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .form-content {
+                padding: 30px 20px;
+            }
+
+            .question-label {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="https://storage.googleapis.com/opex-web-forms-20250716-145646/opex-logo.avif"
+                 alt="Opex Technologies" class="logo">
+            <h1>{{ template_name }}</h1>
+            {% if description %}
+            <p>{{ description }}</p>
+            {% endif %}
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+
+        <div class="form-content">
+            <form id="surveyForm" novalidate>
+                {% for question in questions %}
+                <div class="question-block">
+                    <label class="question-label">
+                        <span class="question-number">{{ loop.index }}</span>
+                        {{ question.question_text }}
+                        {% if question.is_required %}<span class="required">*</span>{% endif %}
+                    </label>
+
+                    {% if question.help_text %}
+                    <div class="help-text">{{ question.help_text }}</div>
+                    {% endif %}
+
+                    {% if question.input_type == 'radio' %}
+                    <div class="radio-group">
+                        <label class="radio-option">
+                            <input type="radio"
+                                   name="q_{{ question.question_id }}"
+                                   value="Yes"
+                                   {% if question.is_required %}required{% endif %}
+                                   data-question-id="{{ question.question_id }}"
+                                   data-weight="{{ question.weight }}">
+                            <span>Yes</span>
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio"
+                                   name="q_{{ question.question_id }}"
+                                   value="No"
+                                   {% if question.is_required %}required{% endif %}
+                                   data-question-id="{{ question.question_id }}"
+                                   data-weight="{{ question.weight }}">
+                            <span>No</span>
+                        </label>
+                    </div>
+
+                    {% elif question.input_type == 'textarea' %}
+                    <textarea name="q_{{ question.question_id }}"
+                              {% if question.is_required %}required{% endif %}
+                              data-question-id="{{ question.question_id }}"
+                              data-weight="{{ question.weight }}"
+                              placeholder="Enter your response..."></textarea>
+
+                    {% elif question.input_type == 'number' %}
+                    <input type="number"
+                           name="q_{{ question.question_id }}"
+                           {% if question.is_required %}required{% endif %}
+                           data-question-id="{{ question.question_id }}"
+                           data-weight="{{ question.weight }}"
+                           placeholder="Enter a number">
+
+                    {% elif question.input_type == 'select' %}
+                    <select name="q_{{ question.question_id }}"
+                            {% if question.is_required %}required{% endif %}
+                            data-question-id="{{ question.question_id }}"
+                            data-weight="{{ question.weight }}">
+                        <option value="">-- Select an option --</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                        <option value="N/A">N/A</option>
+                    </select>
+
+                    {% elif question.input_type == 'checkbox' %}
+                    <div class="checkbox-group">
+                        <label class="checkbox-option">
+                            <input type="checkbox"
+                                   name="q_{{ question.question_id }}"
+                                   value="Yes"
+                                   data-question-id="{{ question.question_id }}"
+                                   data-weight="{{ question.weight }}">
+                            <span>Yes</span>
+                        </label>
+                    </div>
+
+                    {% else %}
+                    <input type="text"
+                           name="q_{{ question.question_id }}"
+                           {% if question.is_required %}required{% endif %}
+                           data-question-id="{{ question.question_id }}"
+                           data-weight="{{ question.weight }}"
+                           placeholder="Enter your response">
+                    {% endif %}
+
+                    <div class="error-message" id="error_{{ question.question_id }}">
+                        This field is required
+                    </div>
+                </div>
+                {% endfor %}
+
+                <div class="submit-section">
+                    <button type="submit" class="submit-button" id="submitBtn">
+                        Submit Survey
+                    </button>
+                </div>
+            </form>
+
+            <div class="success-message" id="successMessage">
+                ✓ Thank you! Your survey has been submitted successfully.
+            </div>
+        </div>
+
+        <div class="footer">
+            &copy; 2025 Opex Technologies. All rights reserved.
+        </div>
+    </div>
+
+    <script>
+        // Form data
+        const TEMPLATE_ID = "{{ template_id }}";
+        const OPPORTUNITY_TYPE = "{{ opportunity_type }}";
+        const OPPORTUNITY_SUBTYPE = "{{ opportunity_subtype }}";
+        const WEBHOOK_URL = "{{ webhook_url }}";
+
+        // Progress tracking
+        const form = document.getElementById('surveyForm');
+        const progressFill = document.getElementById('progressFill');
+        const submitBtn = document.getElementById('submitBtn');
+        const successMessage = document.getElementById('successMessage');
+
+        // Update progress bar
+        function updateProgress() {
+            const inputs = form.querySelectorAll('input[required], textarea[required], select[required]');
+            let answered = 0;
+
+            inputs.forEach(input => {
+                if (input.type === 'radio') {
+                    const name = input.name;
+                    const checked = form.querySelector(`input[name="${name}"]:checked`);
+                    if (checked && !input.dataset.counted) {
+                        answered++;
+                        // Mark all radios in group as counted
+                        form.querySelectorAll(`input[name="${name}"]`).forEach(r => r.dataset.counted = 'true');
+                    }
+                } else if (input.value.trim() !== '') {
+                    answered++;
+                }
+            });
+
+            // Reset counted flags for next calculation
+            inputs.forEach(input => delete input.dataset.counted);
+
+            const radioGroups = new Set();
+            inputs.forEach(input => {
+                if (input.type === 'radio') radioGroups.add(input.name);
+            });
+
+            const totalRequired = inputs.length - radioGroups.size + radioGroups.size;
+            const progress = (answered / totalRequired) * 100;
+            progressFill.style.width = progress + '%';
+        }
+
+        // Add event listeners for progress tracking
+        form.addEventListener('input', updateProgress);
+        form.addEventListener('change', updateProgress);
+
+        // Form validation
+        function validateForm() {
+            let isValid = true;
+            const requiredInputs = form.querySelectorAll('[required]');
+
+            requiredInputs.forEach(input => {
+                const errorMsg = document.getElementById('error_' + input.dataset.questionId);
+
+                if (input.type === 'radio') {
+                    const name = input.name;
+                    const checked = form.querySelector(`input[name="${name}"]:checked`);
+                    if (!checked) {
+                        isValid = false;
+                        if (errorMsg) errorMsg.classList.add('show');
+                    } else {
+                        if (errorMsg) errorMsg.classList.remove('show');
+                    }
+                } else {
+                    if (input.value.trim() === '') {
+                        isValid = false;
+                        input.classList.add('input-error');
+                        if (errorMsg) errorMsg.classList.add('show');
+                    } else {
+                        input.classList.remove('input-error');
+                        if (errorMsg) errorMsg.classList.remove('show');
+                    }
+                }
+            });
+
+            return isValid;
+        }
+
+        // Form submission
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            if (!validateForm()) {
+                alert('Please fill in all required fields');
+                return;
+            }
+
+            // Disable submit button
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting...';
+
+            // Collect form data
+            const formData = new FormData(form);
+            const formFields = {
+                template_id: TEMPLATE_ID,
+                opportunity_type: OPPORTUNITY_TYPE,
+                opportunity_subtype: OPPORTUNITY_SUBTYPE,
+                submitted_at: new Date().toISOString()
+            };
+
+            formData.forEach((value, key) => {
+                formFields[key] = value;
+            });
+
+            // Format payload for webhook (expects formName and formData)
+            const payload = {
+                formName: `form_responses_${OPPORTUNITY_TYPE}_${OPPORTUNITY_SUBTYPE}`.toLowerCase().replace(/[^a-z0-9]/g, '_'),
+                formData: formFields
+            };
+
+            try {
+                console.log('Submitting to:', WEBHOOK_URL);
+                console.log('Payload:', JSON.stringify(payload));
+
+                const response = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                console.log('Response status:', response.status);
+                const responseData = await response.json();
+                console.log('Response data:', responseData);
+
+                if (response.ok) {
+                    console.log('Success! Showing success message...');
+                    progressFill.style.width = '100%';
+                    form.style.display = 'none';
+                    successMessage.classList.add('show');
+                    console.log('Success message classes:', successMessage.className);
+                } else {
+                    throw new Error('Submission failed: ' + JSON.stringify(responseData));
+                }
+            } catch (error) {
+                console.error('Error submitting form:', error);
+                alert('There was an error submitting the form. Please try again.\n\nError: ' + error.message);
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit Survey';
+            }
+        });
+
+        // Initialize progress
+        updateProgress();
+    </script>
+</body>
+</html>
