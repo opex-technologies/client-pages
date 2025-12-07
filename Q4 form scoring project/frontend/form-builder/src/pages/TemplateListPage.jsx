@@ -10,13 +10,6 @@ import { formBuilderAPI } from '../services/formBuilderApi';
 import toast from 'react-hot-toast';
 import ConfirmDialog from '../components/ConfirmDialog';
 
-// Fix malformed deployed URLs (removes duplicate repo name in path)
-const fixDeployedUrl = (url) => {
-  if (!url) return url;
-  // Fix URLs like https://opex-technologies.github.io/opex-technologies.github.io/forms/...
-  return url.replace(/github\.io\/opex-technologies\.github\.io\//, 'github.io/');
-};
-
 const TemplateListPage = () => {
   const navigate = useNavigate();
   const [templates, setTemplates] = useState([]);
@@ -116,12 +109,12 @@ const TemplateListPage = () => {
         <div className="mb-4 p-2 bg-green-50 rounded-lg">
           <p className="text-xs text-green-700 font-medium mb-1">Deployed URL:</p>
           <a
-            href={fixDeployedUrl(template.deployed_url)}
+            href={template.deployed_url}
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs text-green-600 hover:underline break-all"
           >
-            {fixDeployedUrl(template.deployed_url)}
+            {template.deployed_url}
           </a>
         </div>
       )}

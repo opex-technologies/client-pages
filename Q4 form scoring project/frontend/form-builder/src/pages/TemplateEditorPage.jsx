@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Save, Eye, Upload, ArrowLeft, Loader, Copy } from 'lucide-react';
+import { Save, Eye, Upload, ArrowLeft, Loader } from 'lucide-react';
 import { formBuilderAPI, getErrorMessage } from '../services/formBuilderApi';
 import toast from 'react-hot-toast';
 import QuestionBrowser from '../components/QuestionBrowser';
@@ -32,7 +32,6 @@ const TemplateEditorPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeploying, setIsDeploying] = useState(false);
-  const [isDuplicating, setIsDuplicating] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null, variant: 'danger' });
 
@@ -201,34 +200,9 @@ const TemplateEditorPage = () => {
       }
     } catch (error) {
       console.error('Failed to deploy template:', error);
-      console.error('Error details:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-      });
-      toast.error(`Failed to deploy template: ${getErrorMessage(error)}`);
+      toast.error(getErrorMessage(error));
     } finally {
       setIsDeploying(false);
-    }
-  };
-
-  const handleDuplicate = async () => {
-    setIsDuplicating(true);
-    try {
-      const response = await formBuilderAPI.duplicateTemplate(id);
-
-      if (response.data.success) {
-        const newTemplate = response.data.data;
-        toast.success('Template duplicated successfully!');
-        // Navigate to the new template
-        navigate(`/templates/${newTemplate.template_id}/edit`);
-      }
-    } catch (error) {
-      console.error('Failed to duplicate template:', error);
-      toast.error(`Failed to duplicate template: ${getErrorMessage(error)}`);
-    } finally {
-      setIsDuplicating(false);
     }
   };
 
@@ -290,42 +264,23 @@ const TemplateEditorPage = () => {
             )}
           </button>
           {isEditing && (
-            <>
-              <button
-                onClick={handleDuplicate}
-                disabled={isDuplicating}
-                className="btn-secondary flex items-center space-x-2"
-              >
-                {isDuplicating ? (
-                  <>
-                    <Loader className="animate-spin" size={20} />
-                    <span>Duplicating...</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy size={20} />
-                    <span>Duplicate</span>
-                  </>
-                )}
-              </button>
-              <button
-                onClick={handleDeploy}
-                disabled={isDeploying}
-                className="btn-success flex items-center space-x-2"
-              >
-                {isDeploying ? (
-                  <>
-                    <Loader className="animate-spin" size={20} />
-                    <span>Deploying...</span>
-                  </>
-                ) : (
-                  <>
-                    <Upload size={20} />
-                    <span>Deploy</span>
-                  </>
-                )}
-              </button>
-            </>
+            <button
+              onClick={handleDeploy}
+              disabled={isDeploying}
+              className="btn-success flex items-center space-x-2"
+            >
+              {isDeploying ? (
+                <>
+                  <Loader className="animate-spin" size={20} />
+                  <span>Deploying...</span>
+                </>
+              ) : (
+                <>
+                  <Upload size={20} />
+                  <span>Deploy</span>
+                </>
+              )}
+            </button>
           )}
         </div>
       </div>

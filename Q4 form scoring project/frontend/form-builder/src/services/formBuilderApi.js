@@ -128,17 +128,6 @@ export const formBuilderAPI = {
     return apiClient.post(`/form-builder/templates/${templateId}/deploy`, data);
   },
 
-  /**
-   * Duplicate template
-   * @param {string} templateId - Template UUID to duplicate
-   * @param {Object} data - Duplicate options
-   * @param {string} data.name_suffix - Suffix to add to name (default: " (Copy)")
-   * @returns {Promise} New template data
-   */
-  duplicateTemplate: (templateId, data = {}) => {
-    return apiClient.post(`/form-builder/templates/${templateId}/duplicate`, data);
-  },
-
   // ==================== QUESTIONS ====================
 
   /**
@@ -153,12 +142,8 @@ export const formBuilderAPI = {
    * @param {number} params.page_size - Items per page
    * @returns {Promise} List of questions
    */
-  getQuestions: (params = {}, signal = null) => {
-    const config = { params };
-    if (signal) {
-      config.signal = signal;
-    }
-    return apiClient.get('/form-builder/questions', config);
+  getQuestions: (params = {}) => {
+    return apiClient.get('/form-builder/questions', { params });
   },
 
   /**
