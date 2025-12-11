@@ -47,9 +47,20 @@ const ResponseListPage = () => {
       }
 
       const response = await responseScorerAPI.getResponses(params);
-      setResponses(response.data.data.items || []);
-      setPagination(response.data.data.pagination);
+      console.log('Response Scorer API response:', response);
+      console.log('Response data:', response.data);
+      const responseData = response.data?.data || response.data || {};
+      console.log('Extracted data:', responseData);
+      setResponses(responseData.items || []);
+      setPagination(responseData.pagination || {
+        page: 1,
+        page_size: 20,
+        total_count: 0,
+        total_pages: 0
+      });
     } catch (error) {
+      console.error('Response Scorer API error:', error);
+      console.error('Error response:', error.response);
       toast.error(getErrorMessage(error));
       setResponses([]);
     } finally {

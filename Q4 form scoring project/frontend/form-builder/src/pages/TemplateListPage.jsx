@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Filter } from 'lucide-react';
+import { Plus, Search, Filter, BarChart3 } from 'lucide-react';
 import { formBuilderAPI } from '../services/formBuilderApi';
 import toast from 'react-hot-toast';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -127,10 +127,19 @@ const TemplateListPage = () => {
           Edit
         </button>
         <button
-          onClick={() => handleDeleteTemplate(template.template_id)}
-          className="flex-1 btn-danger text-sm py-2"
+          onClick={() => navigate(`/templates/${template.template_id}/scoring`)}
+          className="flex-1 btn-primary text-sm py-2 flex items-center justify-center gap-1"
+          title="Score Responses"
         >
-          Delete
+          <BarChart3 size={16} />
+          Score
+        </button>
+        <button
+          onClick={() => handleDeleteTemplate(template.template_id)}
+          className="btn-danger text-sm py-2 px-3"
+          title="Delete Template"
+        >
+          &times;
         </button>
       </div>
     </div>

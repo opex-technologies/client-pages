@@ -18,6 +18,7 @@ import QuestionDatabasePage from './pages/QuestionDatabasePage';
 import DeploymentHistoryPage from './pages/DeploymentHistoryPage';
 import ResponseListPage from './pages/ResponseListPage';
 import ResponseDetailPage from './pages/ResponseDetailPage';
+import ResponseScoringPage from './pages/ResponseScoringPage';
 
 function AppRoutes() {
   const { isAuthenticated } = useAuth();
@@ -116,6 +117,17 @@ function AppRoutes() {
           <ProtectedRoute>
             <Layout>
               <ResponseDetailPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/templates/:templateId/scoring"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <ResponseScoringPage />
             </Layout>
           </ProtectedRoute>
         }

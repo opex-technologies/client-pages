@@ -17,7 +17,7 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
   (config) => {
     // Get token from localStorage
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('authToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -34,7 +34,7 @@ apiClient.interceptors.response.use(
   (error) => {
     // Handle auth errors
     if (error.response?.status === 401) {
-      localStorage.removeItem('auth_token');
+      localStorage.removeItem('authToken');
       localStorage.removeItem('user');
       window.location.href = '/login';
     }
@@ -80,6 +80,15 @@ export const responseScorerAPI = {
    * @returns {Promise} Success message
    */
   deleteResponse: (responseId) => apiClient.delete(`/responses/${responseId}`),
+
+  /**
+   * Update scores for a response (manual scoring)
+   * @param {string} responseId - Response ID
+   * @param {Object} data - Score update data
+   * @param {Array} data.question_scores - Array of {question_id, points_earned, points_possible, comment}
+   * @returns {Promise} Updated response with new scores
+   */
+  updateResponseScores: (responseId, data) => apiClient.put(`/responses/${responseId}/scores`, data),
 
   /**
    * Get analytics summary

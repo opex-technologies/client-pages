@@ -35,11 +35,13 @@ const SelectedQuestionsList = ({ questions, onRemove, onUpdate, onReorder }) => 
     const isEditing = editingId === question.question_id;
     const [weight, setWeight] = useState(question.weight);
     const [isRequired, setIsRequired] = useState(question.is_required);
+    const [questionText, setQuestionText] = useState(question.question_text);
 
     const handleSaveEdit = () => {
       onUpdate(question.question_id, {
         weight: weight === 'Info' ? 'Info' : parseInt(weight) || 10,
         is_required: isRequired,
+        question_text: questionText,
       });
       setEditingId(null);
     };
@@ -47,6 +49,7 @@ const SelectedQuestionsList = ({ questions, onRemove, onUpdate, onReorder }) => 
     const handleCancelEdit = () => {
       setWeight(question.weight);
       setIsRequired(question.is_required);
+      setQuestionText(question.question_text);
       setEditingId(null);
     };
 
@@ -119,6 +122,17 @@ const SelectedQuestionsList = ({ questions, onRemove, onUpdate, onReorder }) => 
             {/* Edit Mode */}
             {isEditing ? (
               <div className="mt-3 p-3 bg-gray-50 rounded-lg space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Question Text
+                  </label>
+                  <textarea
+                    value={questionText}
+                    onChange={(e) => setQuestionText(e.target.value)}
+                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-opex-cyan"
+                    rows="2"
+                  />
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">

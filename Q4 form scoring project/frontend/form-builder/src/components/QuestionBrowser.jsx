@@ -1,124 +1,71 @@
 /**
  * Question Browser Component
  * Browse and search questions from the database
+ * Loads all questions upfront and filters client-side for instant filtering
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Search, Plus, Filter, Loader, Database, X } from 'lucide-react';
 import { formBuilderAPI, getErrorMessage } from '../services/formBuilderApi';
 import toast from 'react-hot-toast';
 
-const QuestionBrowser = ({ onAddQuestion, selectedQuestionIds = [], opportunitySubtype }) => {
-  const [questions, setQuestions] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
+const QuestionBrowser = ({ onAddQuestion, selectedQuestionIds = [] }) => {
+  const [allQuestions, setAllQuestions] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
 
-  // Load available categories on mount
+  // Load all questions on mount
   useEffect(() => {
-    const loadCategories = async () => {
+    const loadAllQuestions = async () => {
+      setIsLoading(true);
       try {
-        // Fetch a large sample to get all unique categories
-        const response = await formBuilderAPI.getQuestions({ page_size: 200 });
+        const response = await formBuilderAPI.getQuestions({ page_size: 5000 });
         if (response.data.success) {
-          const allQuestions = response.data.data.items || [];
-          const uniqueCategories = [...new Set(allQuestions.map(q => q.category))].sort();
-          setCategories(uniqueCategories);
+          setAllQuestions(response.data.data.items || []);
         }
       } catch (error) {
-        console.error('Failed to load categories:', error);
+        console.error('Failed to load questions:', error);
+        toast.error(getErrorMessage(error));
+      } finally {
+        setIsLoading(false);
       }
     };
-    loadCategories();
+    loadAllQuestions();
   }, []);
 
-  // Fetch questions when filters change (with debounce for search)
-  useEffect(() => {
-    // Debounce search to avoid too many API calls
-    const timeoutId = setTimeout(() => {
-      const fetchQuestions = async () => {
-        setIsLoading(true);
-        try {
-          const params = {
-            page_size: 20,
-            page: 1,
-          };
+  // Extract unique categories from loaded questions
+  const categories = useMemo(() => {
+    const uniqueCategories = [...new Set(allQuestions.map(q => q.category))];
+    return uniqueCategories.sort();
+  }, [allQuestions]);
 
-          if (opportunitySubtype) {
-            params.opportunity_subtype = opportunitySubtype;
-          }
-          if (filterCategory !== 'all') {
-            params.category = filterCategory;
-          }
-          if (searchTerm.trim()) {
-            params.search = searchTerm.trim();
-          }
-
-          const response = await formBuilderAPI.getQuestions(params);
-
-          if (response.data.success) {
-            const newQuestions = response.data.data.items || [];
-            setQuestions(newQuestions);
-            setPage(1);
-            setHasMore(newQuestions.length === 20);
-          }
-        } catch (error) {
-          console.error('Failed to fetch questions:', error);
-          toast.error(getErrorMessage(error));
-          setQuestions([]);
-        } finally {
-          setIsLoading(false);
-        }
-      };
-
-      fetchQuestions();
-    }, 300); // 300ms debounce
-
-    return () => clearTimeout(timeoutId);
-  }, [opportunitySubtype, filterCategory, searchTerm]);
-
-  const handleLoadMore = async () => {
-    setIsLoading(true);
-    try {
-      const nextPage = page + 1;
-      const params = {
-        page_size: 20,
-        page: nextPage,
-      };
-
-      if (opportunitySubtype) {
-        params.opportunity_subtype = opportunitySubtype;
+  // Filter questions client-side
+  const filteredQuestions = useMemo(() => {
+    return allQuestions.filter(q => {
+      // Exclude already selected questions
+      if (selectedQuestionIds.includes(q.question_id)) {
+        return false;
       }
-      if (filterCategory !== 'all') {
-        params.category = filterCategory;
+
+      // Filter by category
+      if (filterCategory !== 'all' && q.category !== filterCategory) {
+        return false;
       }
+
+      // Filter by search term
       if (searchTerm.trim()) {
-        params.search = searchTerm.trim();
+        const search = searchTerm.toLowerCase();
+        const matchesText = q.question_text?.toLowerCase().includes(search);
+        const matchesCategory = q.category?.toLowerCase().includes(search);
+        if (!matchesText && !matchesCategory) {
+          return false;
+        }
       }
 
-      const response = await formBuilderAPI.getQuestions(params);
-
-      if (response.data.success) {
-        const newQuestions = response.data.data.items || [];
-        setQuestions(prevQuestions => [...prevQuestions, ...newQuestions]);
-        setPage(nextPage);
-        setHasMore(newQuestions.length === 20);
-      }
-    } catch (error) {
-      console.error('Failed to load more questions:', error);
-      toast.error(getErrorMessage(error));
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Remove already selected questions from display
-  // (Search filtering is now done server-side)
-  const filteredQuestions = questions
-    .filter(q => !selectedQuestionIds.includes(q.question_id));
+      return true;
+    });
+  }, [allQuestions, selectedQuestionIds, filterCategory, searchTerm]);
 
   const QuestionCard = ({ question }) => {
     const isSelected = selectedQuestionIds.includes(question.question_id);
@@ -183,11 +130,11 @@ const QuestionBrowser = ({ onAddQuestion, selectedQuestionIds = [], opportunityS
           <span>Question Database</span>
         </h2>
         <div className="text-sm">
-          {isLoading && questions.length === 0 ? (
+          {isLoading ? (
             <span className="text-gray-400">Loading...</span>
           ) : (
             <span className="text-gray-600 font-medium">
-              {filteredQuestions.length} question{filteredQuestions.length !== 1 ? 's' : ''}
+              {filteredQuestions.length} of {allQuestions.length} questions
             </span>
           )}
         </div>
@@ -221,10 +168,13 @@ const QuestionBrowser = ({ onAddQuestion, selectedQuestionIds = [], opportunityS
           onChange={(e) => setFilterCategory(e.target.value)}
           className="input-field"
         >
-          <option value="all">All Categories</option>
-          {categories.map(cat => (
-            <option key={cat} value={cat}>{cat}</option>
-          ))}
+          <option value="all">All Categories ({allQuestions.length})</option>
+          {categories.map(cat => {
+            const count = allQuestions.filter(q => q.category === cat).length;
+            return (
+              <option key={cat} value={cat}>{cat} ({count})</option>
+            );
+          })}
         </select>
 
         {(searchTerm || filterCategory !== 'all') && (
@@ -242,34 +192,16 @@ const QuestionBrowser = ({ onAddQuestion, selectedQuestionIds = [], opportunityS
 
       {/* Questions List */}
       <div className="flex-1 space-y-3 overflow-y-auto min-h-0 pr-2">
-        {isLoading && questions.length === 0 ? (
+        {isLoading ? (
           <div className="text-center py-8">
             <Loader className="animate-spin h-8 w-8 text-opex-navy mx-auto mb-2" />
-            <p className="text-gray-600 text-sm">Loading questions...</p>
+            <p className="text-gray-600 text-sm">Loading all questions...</p>
           </div>
         ) : filteredQuestions.length > 0 ? (
-          <>
-            {filteredQuestions.map((question) => (
-              <QuestionCard key={question.question_id} question={question} />
-            ))}
-
-            {hasMore && !isLoading && (
-              <button
-                onClick={handleLoadMore}
-                className="w-full py-3 text-sm font-medium text-opex-navy bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200"
-              >
-                Load More Questions ({questions.length} shown)
-              </button>
-            )}
-
-            {isLoading && questions.length > 0 && (
-              <div className="text-center py-4">
-                <Loader className="animate-spin h-6 w-6 text-opex-navy mx-auto mb-2" />
-                <p className="text-xs text-gray-500">Loading more...</p>
-              </div>
-            )}
-          </>
-        ) : !isLoading ? (
+          filteredQuestions.map((question) => (
+            <QuestionCard key={question.question_id} question={question} />
+          ))
+        ) : (
           <div className="text-center py-12">
             <Filter size={48} className="mx-auto text-gray-300 mb-3" />
             <p className="text-gray-600 font-medium mb-1">No questions found</p>
@@ -290,7 +222,7 @@ const QuestionBrowser = ({ onAddQuestion, selectedQuestionIds = [], opportunityS
               </button>
             )}
           </div>
-        ) : null}
+        )}
       </div>
     </div>
   );

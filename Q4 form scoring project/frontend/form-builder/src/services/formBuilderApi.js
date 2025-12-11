@@ -9,7 +9,7 @@ import config from '../config';
 // Create axios instance with default configuration
 const apiClient = axios.create({
   baseURL: config.apiUrl,
-  timeout: 30000, // 30 seconds
+  timeout: 60000, // 60 seconds
   headers: {
     'Content-Type': 'application/json',
   },
@@ -129,6 +129,14 @@ export const formBuilderAPI = {
   },
 
   // ==================== QUESTIONS ====================
+
+  /**
+   * Get all unique question categories
+   * @returns {Promise} List of categories
+   */
+  getQuestionCategories: () => {
+    return apiClient.get('/form-builder/questions/categories');
+  },
 
   /**
    * Query questions from database

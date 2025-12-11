@@ -74,6 +74,7 @@ const TemplateEditorPage = () => {
     const newQuestion = {
       question_id: question.question_id,
       question_text: question.question_text,
+      original_question_text: question.question_text, // Track original for comparison
       category: question.category,
       input_type: question.input_type,
       weight: question.default_weight || 10,
@@ -145,6 +146,8 @@ const TemplateEditorPage = () => {
           weight: q.weight === 'Info' ? null : q.weight,
           is_required: q.is_required,
           sort_order: q.sort_order,
+          // Include question_text_override if the text was modified
+          question_text_override: q.question_text !== q.original_question_text ? q.question_text : null,
         })),
       };
 
@@ -366,7 +369,6 @@ const TemplateEditorPage = () => {
           <QuestionBrowser
             onAddQuestion={handleAddQuestion}
             selectedQuestionIds={selectedQuestions.map(q => q.question_id)}
-            opportunitySubtype={opportunitySubtype}
           />
         </div>
 

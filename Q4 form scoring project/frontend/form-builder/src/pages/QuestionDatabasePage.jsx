@@ -19,8 +19,6 @@ const QuestionDatabasePage = () => {
   const [filterType, setFilterType] = useState('all');
   const [filterSubtype, setFilterSubtype] = useState('all');
   const [selectedQuestion, setSelectedQuestion] = useState(null);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
 
   // Editor state
   const [isEditorOpen, setIsEditorOpen] = useState(false);
@@ -60,28 +58,16 @@ const QuestionDatabasePage = () => {
     return () => document.removeEventListener('keydown', handleEscape);
   }, [isEditorOpen, selectedQuestion]);
 
-  const fetchQuestions = async (loadMore = false) => {
+  const fetchQuestions = async () => {
     setIsLoading(true);
     try {
-      const params = {
-        page_size: 100,
-        page: loadMore ? page + 1 : 1,
-      };
-
-      const response = await formBuilderAPI.getQuestions(params);
+      // Fetch all questions in a single request
+      const response = await formBuilderAPI.getQuestions({ page_size: 5000 });
 
       if (response.data.success) {
-        const newQuestions = response.data.data.items || [];
-
-        if (loadMore) {
-          setQuestions([...questions, ...newQuestions]);
-          setPage(page + 1);
-        } else {
-          setQuestions(newQuestions);
-          calculateStats(newQuestions);
-        }
-
-        setHasMore(newQuestions.length === 100);
+        const allQuestions = response.data.data.items || [];
+        setQuestions(allQuestions);
+        calculateStats(allQuestions);
       }
     } catch (error) {
       console.error('Failed to fetch questions:', error);
@@ -637,17 +623,6 @@ const QuestionDatabasePage = () => {
               <QuestionCard key={question.question_id} question={question} />
             ))}
           </div>
-
-          {hasMore && (
-            <div className="text-center mt-6">
-              <button
-                onClick={() => fetchQuestions(true)}
-                className="btn-secondary"
-              >
-                Load More Questions
-              </button>
-            </div>
-          )}
         </>
       ) : (
         <div className="text-center py-16">
