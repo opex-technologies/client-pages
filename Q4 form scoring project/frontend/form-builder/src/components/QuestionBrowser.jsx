@@ -5,11 +5,11 @@
  */
 
 import { useEffect, useState, useMemo } from 'react';
-import { Search, Plus, Filter, Loader, Database, X } from 'lucide-react';
+import { Search, Plus, Filter, Loader, Database, X, PlusCircle } from 'lucide-react';
 import { formBuilderAPI, getErrorMessage } from '../services/formBuilderApi';
 import toast from 'react-hot-toast';
 
-const QuestionBrowser = ({ onAddQuestion, selectedQuestionIds = [] }) => {
+const QuestionBrowser = ({ onAddQuestion, onAddMultipleQuestions, selectedQuestionIds = [] }) => {
   const [allQuestions, setAllQuestions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -66,6 +66,23 @@ const QuestionBrowser = ({ onAddQuestion, selectedQuestionIds = [] }) => {
       return true;
     });
   }, [allQuestions, selectedQuestionIds, filterCategory, searchTerm]);
+
+  // Handle adding all filtered questions
+  const handleAddAllFiltered = () => {
+    if (filteredQuestions.length === 0) {
+      toast.error('No questions to add');
+      return;
+    }
+
+    if (onAddMultipleQuestions) {
+      onAddMultipleQuestions(filteredQuestions);
+      toast.success(`Added ${filteredQuestions.length} questions`);
+    } else {
+      // Fallback to adding one by one if bulk handler not provided
+      filteredQuestions.forEach(q => onAddQuestion(q));
+      toast.success(`Added ${filteredQuestions.length} questions`);
+    }
+  };
 
   const QuestionCard = ({ question }) => {
     const isSelected = selectedQuestionIds.includes(question.question_id);
@@ -176,6 +193,18 @@ const QuestionBrowser = ({ onAddQuestion, selectedQuestionIds = [] }) => {
             );
           })}
         </select>
+
+        {/* Add All Button - shows when filtering */}
+        {filteredQuestions.length > 0 && (
+          <button
+            onClick={handleAddAllFiltered}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-opex-cyan text-white rounded-lg hover:bg-opex-cyan/90 transition-colors font-medium text-sm"
+          >
+            <PlusCircle size={18} />
+            Add All {filteredQuestions.length} Questions
+            {filterCategory !== 'all' && ` from "${filterCategory}"`}
+          </button>
+        )}
 
         {(searchTerm || filterCategory !== 'all') && (
           <button

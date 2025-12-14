@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Download, Save, CheckCircle, XCircle, MinusCircle, Users, MessageSquare, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Download, Save, CheckCircle, XCircle, MinusCircle, Users, MessageSquare, ChevronDown, ChevronUp, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { responseScorerAPI, getErrorMessage } from '../services/responseScorerApi';
 import { formBuilderAPI } from '../services/formBuilderApi';
@@ -330,6 +330,232 @@ const ResponseScoringPage = () => {
     toast.success('Exported to CSV');
   };
 
+  // Export to PDF
+  const handleExportPDF = () => {
+    if (selectedResponses.length === 0) {
+      toast.error('Select at least one response to export');
+      return;
+    }
+
+    // Build HTML content for PDF
+    const selectedResponsesData = selectedResponses.map(id => {
+      const response = responses.find(r => r.response_id === id);
+      const totals = calculateTotalScore(id);
+      return { response, totals, id };
+    });
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>${template?.template_name || 'Scoring Report'} - Score Report</title>
+        <style>
+          * { box-sizing: border-box; margin: 0; padding: 0; }
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 40px;
+            color: #1f2937;
+            line-height: 1.5;
+          }
+          .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #1a2859;
+          }
+          .header h1 {
+            color: #1a2859;
+            font-size: 24px;
+            margin-bottom: 8px;
+          }
+          .header .subtitle {
+            color: #6b7280;
+            font-size: 14px;
+          }
+          .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+          }
+          .summary-card {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+          }
+          .summary-card .name {
+            font-weight: 600;
+            color: #1a2859;
+            margin-bottom: 4px;
+          }
+          .summary-card .email {
+            font-size: 12px;
+            color: #6b7280;
+            margin-bottom: 12px;
+          }
+          .summary-card .score {
+            font-size: 32px;
+            font-weight: 700;
+          }
+          .summary-card .score.high { color: #16a34a; }
+          .summary-card .score.medium { color: #ca8a04; }
+          .summary-card .score.low { color: #dc2626; }
+          .summary-card .points {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 4px;
+          }
+          .score-bar {
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            margin-top: 12px;
+            overflow: hidden;
+          }
+          .score-bar-fill { height: 100%; border-radius: 4px; }
+          .score-bar-fill.high { background: #16a34a; }
+          .score-bar-fill.medium { background: #ca8a04; }
+          .score-bar-fill.low { background: #dc2626; }
+
+          .details-section { margin-top: 30px; }
+          .details-section h2 {
+            font-size: 18px;
+            color: #1a2859;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e5e7eb;
+          }
+
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            margin-top: 16px;
+          }
+          th {
+            background: #1a2859;
+            color: white;
+            padding: 10px 8px;
+            text-align: left;
+            font-weight: 600;
+          }
+          td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #e5e7eb;
+            vertical-align: top;
+          }
+          tr:nth-child(even) { background: #f9fafb; }
+          .question-cell { max-width: 300px; }
+          .answer-cell {
+            max-width: 200px;
+            color: #374151;
+          }
+          .score-cell {
+            text-align: center;
+            font-weight: 600;
+          }
+          .no-answer {
+            color: #9ca3af;
+            font-style: italic;
+          }
+
+          .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+            text-align: center;
+            font-size: 11px;
+            color: #9ca3af;
+          }
+
+          @media print {
+            body { padding: 20px; }
+            .summary-card { break-inside: avoid; }
+            table { page-break-inside: auto; }
+            tr { page-break-inside: avoid; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>${template?.template_name || 'Scoring Report'}</h1>
+          <div class="subtitle">Score Report • Generated ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</div>
+        </div>
+
+        <div class="summary-grid">
+          ${selectedResponsesData.map(({ response, totals }) => {
+            const scoreClass = totals.percentage >= 80 ? 'high' : totals.percentage >= 60 ? 'medium' : 'low';
+            return `
+              <div class="summary-card">
+                <div class="name">${response?.submitter_name || 'Anonymous'}</div>
+                <div class="email">${response?.submitter_email || 'No email provided'}</div>
+                <div class="score ${scoreClass}">${totals.percentage.toFixed(1)}%</div>
+                <div class="points">${totals.earned.toFixed(1)} / ${totals.possible.toFixed(1)} points</div>
+                <div class="score-bar">
+                  <div class="score-bar-fill ${scoreClass}" style="width: ${Math.min(100, totals.percentage)}%"></div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+
+        <div class="details-section">
+          <h2>Detailed Scores</h2>
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 40%">Question</th>
+                ${selectedResponsesData.map(({ response }) => `
+                  <th style="width: ${60 / selectedResponsesData.length}%">${response?.submitter_name || 'Anonymous'}</th>
+                `).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${questions.map((q, idx) => `
+                <tr>
+                  <td class="question-cell">
+                    <strong>${idx + 1}.</strong> ${q.question_text}
+                    <div style="font-size: 10px; color: #6b7280; margin-top: 4px;">Max: ${q.weight || 0} pts</div>
+                  </td>
+                  ${selectedResponsesData.map(({ id }) => {
+                    const answer = getAnswer(id, q.question_id);
+                    const edit = getScoreEdit(id, q.question_id);
+                    const hasAnswer = answer?.answer_value && answer.answer_value.trim() !== '';
+                    return `
+                      <td>
+                        <div class="answer-cell ${!hasAnswer ? 'no-answer' : ''}">${hasAnswer ? answer.answer_value : 'No answer'}</div>
+                        <div class="score-cell" style="margin-top: 8px;">${edit.points_earned} / ${q.weight || 0} pts</div>
+                      </td>
+                    `;
+                  }).join('')}
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="footer">
+          Generated by Opex Form Builder • ${new Date().toISOString()}
+        </div>
+      </body>
+      </html>
+    `;
+
+    // Open in new window and trigger print
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+
+    // Wait for content to load then print
+    printWindow.onload = () => {
+      printWindow.print();
+    };
+
+    toast.success('PDF export ready - use Print dialog to save as PDF');
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -370,6 +596,14 @@ const ResponseScoringPage = () => {
         </div>
 
         <div className="flex gap-2">
+          <button
+            onClick={handleExportPDF}
+            disabled={selectedResponses.length === 0}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2 disabled:opacity-50"
+          >
+            <FileText size={20} />
+            Export PDF
+          </button>
           <button
             onClick={handleExport}
             disabled={selectedResponses.length === 0}

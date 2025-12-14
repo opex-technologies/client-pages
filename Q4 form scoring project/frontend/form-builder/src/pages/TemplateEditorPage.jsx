@@ -86,6 +86,32 @@ const TemplateEditorPage = () => {
     toast.success('Question added');
   };
 
+  const handleAddMultipleQuestions = (questions) => {
+    // Filter out already added questions
+    const newQuestions = questions.filter(
+      q => !selectedQuestions.find(sq => sq.question_id === q.question_id)
+    );
+
+    if (newQuestions.length === 0) {
+      toast.error('All questions already added');
+      return;
+    }
+
+    const startOrder = selectedQuestions.length + 1;
+    const formattedQuestions = newQuestions.map((question, index) => ({
+      question_id: question.question_id,
+      question_text: question.question_text,
+      original_question_text: question.question_text,
+      category: question.category,
+      input_type: question.input_type,
+      weight: question.default_weight || 10,
+      is_required: true,
+      sort_order: startOrder + index,
+    }));
+
+    setSelectedQuestions([...selectedQuestions, ...formattedQuestions]);
+  };
+
   const handleRemoveQuestion = (questionId) => {
     const updated = selectedQuestions.filter(q => q.question_id !== questionId);
     // Reorder
@@ -368,6 +394,7 @@ const TemplateEditorPage = () => {
         <div>
           <QuestionBrowser
             onAddQuestion={handleAddQuestion}
+            onAddMultipleQuestions={handleAddMultipleQuestions}
             selectedQuestionIds={selectedQuestions.map(q => q.question_id)}
           />
         </div>
